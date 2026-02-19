@@ -347,6 +347,12 @@
         return num === null ? "NA" : num.toFixed(2);
       }
 
+      function toScoreNumber(value) {
+        const num = parseNumber(value);
+        if (num === null) return null;
+        return Math.round(num * 100) / 100;
+      }
+
       function safeText(value) {
         if (value === null || value === undefined || value === "") {
           return "NA";
@@ -422,17 +428,17 @@
       }
 
       function computeFundScore(fund) {
-        const ret1 = parseNumber(fund["Return 1 Year (%) Direct"]);
-        const catRet1 = parseNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
-        const aumChange = parseNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
-        const ter = parseNumber(fund["ter_Direct Plan - Total TER (%)"]);
-        const catTer = parseNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
-        const alpha1 = parseNumber(fund["Alpha 1yr"]);
-        const consistency1 = parseNumber(fund["Information Ratio* 1 Year (Direct)"]);
-        const navStd = parseNumber(fund["NAV Std Dev (Rebased)"]);
+        const ret1 = toScoreNumber(fund["Return 1 Year (%) Direct"]);
+        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
+        const aumChange = toScoreNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
+        const ter = toScoreNumber(fund["ter_Direct Plan - Total TER (%)"]);
+        const catTer = toScoreNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
+        const alpha1 = toScoreNumber(fund["Alpha 1yr"]);
+        const consistency1 = toScoreNumber(fund["Information Ratio* 1 Year (Direct)"]);
+        const navStd = toScoreNumber(fund["NAV Std Dev (Rebased)"]);
         const catNavStd =
-          parseNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
-          parseNumber(getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)"));
+          toScoreNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
+          toScoreNumber(getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)"));
 
         const c1 = ret1 !== null && catRet1 !== null && ret1 > catRet1 ? 1 : 0;
         const c2 = aumChange !== null && aumChange > 0 ? 1 : 0;
@@ -444,17 +450,17 @@
       }
 
       function computeFundScoreDetails(fund) {
-        const ret1 = parseNumber(fund["Return 1 Year (%) Direct"]);
-        const catRet1 = parseNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
-        const aumChange = parseNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
-        const ter = parseNumber(fund["ter_Direct Plan - Total TER (%)"]);
-        const catTer = parseNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
-        const alpha1 = parseNumber(fund["Alpha 1yr"]);
-        const consistency1 = parseNumber(fund["Information Ratio* 1 Year (Direct)"]);
-        const navStd = parseNumber(fund["NAV Std Dev (Rebased)"]);
+        const ret1 = toScoreNumber(fund["Return 1 Year (%) Direct"]);
+        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
+        const aumChange = toScoreNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
+        const ter = toScoreNumber(fund["ter_Direct Plan - Total TER (%)"]);
+        const catTer = toScoreNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
+        const alpha1 = toScoreNumber(fund["Alpha 1yr"]);
+        const consistency1 = toScoreNumber(fund["Information Ratio* 1 Year (Direct)"]);
+        const navStd = toScoreNumber(fund["NAV Std Dev (Rebased)"]);
         const catNavStd =
-          parseNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
-          parseNumber(getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)"));
+          toScoreNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
+          toScoreNumber(getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)"));
 
         const checks = [
           {
