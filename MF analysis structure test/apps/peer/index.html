@@ -436,7 +436,7 @@
 
         const c1 = ret1 !== null && catRet1 !== null && ret1 > catRet1 ? 1 : 0;
         const c2 = aumChange !== null && aumChange > 0 ? 1 : 0;
-        const c3 = ter !== null && catTer !== null && ter < catTer ? 1 : 0;
+        const c3 = ter !== null && catTer !== null && ter <= catTer ? 1 : 0;
         const c4 = alpha1 !== null && alpha1 > 0 ? 1 : 0;
         const c5 = consistency1 !== null && consistency1 > 1 ? 1 : 0;
         const c6 = navStd !== null && catNavStd !== null && navStd < catNavStd ? 1 : 0;
@@ -466,8 +466,8 @@
             pass: aumChange !== null && aumChange > 0,
           },
           {
-            label: "ter<category_avg",
-            pass: ter !== null && catTer !== null && ter < catTer,
+            label: "ter<=category_avg",
+            pass: ter !== null && catTer !== null && ter <= catTer,
           },
           {
             label: "alpha1yr>0",
@@ -794,7 +794,23 @@
             label: "Consistency 10Y (Direct)",
             getValue: (fund) => format2(fund["Information Ratio* 10 Year (Regular)"]),
           },
+          {
+            label: "NAV Std Dev (Rebased)",
+            getValue: (fund) => format2(fund["NAV Std Dev (Rebased)"]),
+          },
+          {
+            label: "Category Avg NAV Std Dev (Rebased)",
+            getValue: (fund) =>
+              format2(
+                fund["Category Avg NAV Std Dev (Rebased)"] ??
+                  getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)")
+              ),
+          },
           { label: "Direct Total TER (%)", getValue: (fund) => format2(fund["ter_Direct Plan - Total TER (%)"]) },
+          {
+            label: "Category Avg Direct TER (%)",
+            getValue: (fund) => format2(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)")),
+          },
         ];
 
         const wrap = document.createElement("div");
