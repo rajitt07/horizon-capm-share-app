@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Peer Comparison</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        max-width: 1200px;
+        margin: 24px auto;
+        padding: 0 16px;
+        background: #0b0d12;
+        color: #e6e8ee;
+      }
+      h1 {
+        margin: 0 0 16px 0;
+        font-size: 28px;
+      }
+      .hint {
+        color: #9aa3b2;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .panel {
+        background: #141823;
+        border: 1px solid #20263a;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+      .section-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #9aa3b2;
+        margin: 0 0 10px 2px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .ranking-button.is-active {
+        border-color: #4d7cff;
+        color: #b8c9ff;
+      }
+      .ghost-button {
+        white-space: nowrap;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid #2a3350;
+        border-radius: 999px;
+        background: #0f1320;
+        color: #e6e8ee;
+        cursor: pointer;
+      }
+      .peer-controls {
+        display: grid;
+        gap: 12px;
+      }
+      .peer-search {
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 16px;
+        height: 38px;
+        background: #0f1320;
+        color: #e6e8ee;
+        border: 1px solid #2a3350;
+        border-radius: 8px;
+        outline: none;
+      }
+      .selector-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #9aa3b2;
+      }
+      .selector-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .peer-fund-list {
+        max-height: 240px;
+        overflow: auto;
+        border: 1px solid #2a3350;
+        border-radius: 10px;
+        background: #0f1320;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .peer-fund-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 13px;
+      }
+      .peer-fund-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .peer-fund-item input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+      }
+      .compare-mini-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      .compare-mini-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .peer-chart-wrap {
+        margin-top: 14px;
+        border: 1px solid #2a3350;
+        border-radius: 10px;
+        padding: 12px;
+        background: #0f1320;
+      }
+      .peer-status {
+        font-size: 12px;
+        color: #9aa3b2;
+        margin-top: 10px;
+        white-space: pre-wrap;
+      }
+      .peer-details {
+        margin-top: 14px;
+        display: block;
+      }
+      .comparison-table-wrap {
+        overflow-x: auto;
+        border: 1px solid #2a3350;
+        border-radius: 10px;
+        background: #0f1320;
+      }
+      .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 980px;
+      }
+      .comparison-table th,
+      .comparison-table td {
+        border-bottom: 1px solid #2a3350;
+        border-right: 1px solid #2a3350;
+        padding: 10px 12px;
+        font-size: 13px;
+        vertical-align: top;
+      }
+      .comparison-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #101627;
+        color: #e6e8ee;
+        text-align: left;
+        font-weight: 700;
+      }
+      .comparison-table thead th:first-child,
+      .comparison-table tbody th {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: #101627;
+      }
+      .comparison-table tbody th {
+        color: #cfd6e9;
+        text-align: left;
+        font-weight: 600;
+        min-width: 220px;
+      }
+      .comparison-table tbody td {
+        color: #d8dded;
+        white-space: nowrap;
+      }
+      .comparison-table tbody td.score-cell {
+        white-space: normal;
+      }
+      .score-cell-wrap {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .score-value {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .score-details {
+        border: 1px solid #2a3350;
+        border-radius: 8px;
+        background: #0f1320;
+        min-width: 190px;
+      }
+      .score-details summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 4px 8px;
+        font-size: 11px;
+        color: #cfd6e9;
+        user-select: none;
+      }
+      .score-details summary::-webkit-details-marker {
+        display: none;
+      }
+      .score-details[open] summary {
+        border-bottom: 1px solid #2a3350;
+      }
+      .score-reason-list {
+        margin: 0;
+        padding: 6px 10px 8px 18px;
+        font-size: 11px;
+        color: #cfd6e9;
+      }
+      .score-reason-list li {
+        margin: 2px 0;
+      }
+      .comparison-table th:last-child,
+      .comparison-table td:last-child {
+        border-right: 0;
+      }
+      .comparison-table tbody tr:last-child th,
+      .comparison-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Peer Comparison</h1>
+      <div class="panel">
+        <div class="section-head">
+          <div class="section-title">Peer Comparison (Direct Plan)</div>
+          <button id="peer-ranking-toggle" type="button" class="ghost-button ranking-button">Ranking</button>
+        </div>
+      <div class="peer-controls">
+        <input
+          id="peer-search"
+          class="peer-search"
+          type="text"
+          placeholder="Search funds by scheme name or category"
+        />
+        <div class="selector-meta">
+          <span id="peer-selected-count">Selected: 0</span>
+          <div class="selector-actions">
+            <button id="peer-select-all" type="button" class="ghost-button">Select All</button>
+            <button id="peer-clear" type="button" class="ghost-button">Clear</button>
+          </div>
+        </div>
+        <div id="peer-fund-list" class="peer-fund-list"></div>
+      </div>
+      <div class="peer-chart-wrap">
+        <canvas id="peer-nav-chart" height="110"></canvas>
+        <div class="hint">Daily NAV, rebased to 100 at 30-Sep-2025.</div>
+      </div>
+      <div id="peer-status" class="peer-status"></div>
+      <div id="peer-details" class="peer-details"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
+      const comparisonXlsxUrl = "../../data/matched_only_sorted.xlsx";
+      const amfiNavCsvUrl =
+        "../../data/matched_only_sorted_amfi_nav_curve_funds_only_2025-09-30_to_2025-12-25.csv";
+      const peerSearchInput = document.getElementById("peer-search");
+      const peerFundList = document.getElementById("peer-fund-list");
+      const peerStatus = document.getElementById("peer-status");
+      const peerDetails = document.getElementById("peer-details");
+      const peerSelectedCount = document.getElementById("peer-selected-count");
+      const peerSelectAllButton = document.getElementById("peer-select-all");
+      const peerClearButton = document.getElementById("peer-clear");
+      const peerRankingToggleButton = document.getElementById("peer-ranking-toggle");
+      const peerChartCanvas = document.getElementById("peer-nav-chart");
+
+      const peerState = {
+        funds: [],
+        selectedSchemes: new Set(),
+        navCache: new Map(),
+        amfiNavByScheme: new Map(),
+        categoryAverageRows: new Map(),
+        rankMode: false,
+        chart: null,
+      };
+      const maxSelectedFunds = 3;
+      const comparisonBaseDateRaw = "30-Sep-2025";
+      const fundLinePalette = [
+        "#7cb9ff",
+        "#f7a35c",
+        "#90ed7d",
+        "#f15c80",
+        "#8085e9",
+        "#2b908f",
+        "#f45b5b",
+        "#91e8e1",
+      ];
+      const categoryToAverageSchemeKey = {
+        "dividend yield": "category_avg_dividend",
+        elss: "category_avg_elss",
+        "flexi cap": "category_avg_flexicap",
+        "large and mid cap": "category_avg_l&m",
+        "large cap": "category_avg_largecap",
+        "mid cap": "category_avg_midcap",
+        "multi cap": "category_avg_multicap",
+        "sectorial:thematic": "category_avg_st",
+        "small cap": "category_avg_smallcap",
+        value: "category_avg_value",
+      };
+
+      function normalizeKey(value) {
+        return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+      }
+
+      function getValue(row, key) {
+        return row[key] ?? null;
+      }
+
+      function parseCsvRow(line) {
+        const values = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i += 1) {
+          const char = line[i];
+          if (char === '"' && line[i + 1] === '"') {
+            current += '"';
+            i += 1;
+          } else if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === "," && !inQuotes) {
+            values.push(current);
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        values.push(current);
+        return values;
+      }
+
+      function parseNumber(value) {
+        if (value === null || value === undefined || value === "") {
+          return null;
+        }
+        if (typeof value === "number") {
+          return Number.isFinite(value) ? value : null;
+        }
+        const parsed = Number.parseFloat(String(value).replace(/,/g, "").trim());
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function format2(value) {
+        const num = parseNumber(value);
+        return num === null ? "NA" : num.toFixed(2);
+      }
+
+      function toScoreNumber(value) {
+        const num = parseNumber(value);
+        if (num === null) return null;
+        return Math.round(num * 100) / 100;
+      }
+
+      function safeText(value) {
+        if (value === null || value === undefined || value === "") {
+          return "NA";
+        }
+        return String(value);
+      }
+
+      function parseDdMmYyyy(dateText) {
+        const parts = String(dateText || "").split("-");
+        if (parts.length !== 3) {
+          return null;
+        }
+        const monthMap = {
+          jan: 1,
+          feb: 2,
+          mar: 3,
+          apr: 4,
+          may: 5,
+          jun: 6,
+          jul: 7,
+          aug: 8,
+          sep: 9,
+          oct: 10,
+          nov: 11,
+          dec: 12,
+        };
+        const day = Number.parseInt(parts[0], 10);
+        const monthPart = String(parts[1] || "").trim();
+        const monthNumeric = Number.parseInt(monthPart, 10);
+        const month = Number.isFinite(monthNumeric)
+          ? monthNumeric
+          : monthMap[monthPart.slice(0, 3).toLowerCase()];
+        const year = Number.parseInt(parts[2], 10);
+        if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) {
+          return null;
+        }
+        return new Date(year, month - 1, day);
+      }
+
+      function isSameCalendarDate(a, b) {
+        return (
+          a instanceof Date &&
+          b instanceof Date &&
+          a.getFullYear() === b.getFullYear() &&
+          a.getMonth() === b.getMonth() &&
+          a.getDate() === b.getDate()
+        );
+      }
+
+      function pickConsistencyColumns(headers) {
+        const byYear = {};
+        headers.forEach((header) => {
+          const label = String(header || "");
+          const normalized = label.toLowerCase();
+          if (!normalized.includes("direct") || !normalized.includes("consist")) return;
+          const match = normalized.match(/(1|3|5|10)\s*year/);
+          if (match) byYear[match[1]] = label;
+        });
+        return byYear;
+      }
+
+      function getCategoryAverageValue(fund, fieldName) {
+        const categoryKey = normalizeKey(fund?.category || "");
+        const avgSchemeKey = categoryToAverageSchemeKey[categoryKey];
+        if (!avgSchemeKey) {
+          return null;
+        }
+        const avgRow = peerState.categoryAverageRows.get(normalizeKey(avgSchemeKey));
+        if (!avgRow) {
+          return null;
+        }
+        return avgRow[fieldName];
+      }
+
+      function computeFundScore(fund) {
+        const ret1 = toScoreNumber(fund["Return 1 Year (%) Direct"]);
+        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
+        const aumChange = toScoreNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
+        const ter = toScoreNumber(fund["ter_Direct Plan - Total TER (%)"]);
+        const catTer = toScoreNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
+        const alpha1 = toScoreNumber(fund["Alpha 1yr"]);
+        const consistency1 = toScoreNumber(fund["Information Ratio* 1 Year (Direct)"]);
+        const navStd = toScoreNumber(fund["NAV Std Dev (Rebased)"]);
+        const catNavStd =
+          toScoreNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
+          toScoreNumber(getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)"));
+
+        const c1 = ret1 !== null && catRet1 !== null && ret1 > catRet1 ? 1 : 0;
+        const c2 = aumChange !== null && aumChange > 0 ? 1 : 0;
+        const c3 = ter !== null && catTer !== null && ter <= catTer ? 1 : 0;
+        const c4 = alpha1 !== null && alpha1 > 0 ? 1 : 0;
+        const c5 = consistency1 !== null && consistency1 > 1 ? 1 : 0;
+        const c6 = navStd !== null && catNavStd !== null && navStd < catNavStd ? 1 : 0;
+        return c1 + c2 + c3 + c4 + c5 + c6;
+      }
+
+      function computeFundScoreDetails(fund) {
+        const ret1 = toScoreNumber(fund["Return 1 Year (%) Direct"]);
+        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
+        const aumChange = toScoreNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
+        const ter = toScoreNumber(fund["ter_Direct Plan - Total TER (%)"]);
+        const catTer = toScoreNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
+        const alpha1 = toScoreNumber(fund["Alpha 1yr"]);
+        const consistency1 = toScoreNumber(fund["Information Ratio* 1 Year (Direct)"]);
+        const navStd = toScoreNumber(fund["NAV Std Dev (Rebased)"]);
+        const catNavStd =
+          toScoreNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
+          toScoreNumber(getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)"));
+
+        const checks = [
+          {
+            label: "return>category_avg",
+            pass: ret1 !== null && catRet1 !== null && ret1 > catRet1,
+          },
+          {
+            label: "aum>0",
+            pass: aumChange !== null && aumChange > 0,
+          },
+          {
+            label: "ter<=category_avg",
+            pass: ter !== null && catTer !== null && ter <= catTer,
+          },
+          {
+            label: "alpha1yr>0",
+            pass: alpha1 !== null && alpha1 > 0,
+          },
+          {
+            label: "consistency1y>1",
+            pass: consistency1 !== null && consistency1 > 1,
+          },
+          {
+            label: "stddev<category_avg",
+            pass: navStd !== null && catNavStd !== null && navStd < catNavStd,
+          },
+        ];
+        const total = checks.reduce((sum, check) => sum + (check.pass ? 1 : 0), 0);
+        const reasons = checks.map((check) => `${check.label}: ${check.pass ? "+1" : "0"}`);
+        return { total, reasons };
+      }
+
+      function getDisplayedFunds() {
+        if (!peerState.rankMode) return peerState.funds;
+        return [...peerState.funds].sort((a, b) => {
+          const scoreDiff = computeFundScore(b) - computeFundScore(a);
+          if (scoreDiff !== 0) return scoreDiff;
+          return String(a.scheme_name || "").localeCompare(String(b.scheme_name || ""));
+        });
+      }
+
+      function updateRankingButtonState() {
+        if (!peerRankingToggleButton) return;
+        peerRankingToggleButton.classList.toggle("is-active", peerState.rankMode);
+      }
+
+      function renderPeerFundList() {
+        const query = normalizeKey(peerSearchInput?.value || "");
+        peerFundList.innerHTML = "";
+        const filtered = getDisplayedFunds().filter((fund) => {
+          if (!query) return true;
+          return (
+            normalizeKey(fund.scheme_name).includes(query) ||
+            normalizeKey(fund.category).includes(query)
+          );
+        });
+        filtered.forEach((fund, index) => {
+          const row = document.createElement("div");
+          row.className = "peer-fund-item";
+          const left = document.createElement("label");
+          left.className = "peer-fund-left";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = peerState.selectedSchemes.has(fund.scheme_name);
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+              if (peerState.selectedSchemes.size >= maxSelectedFunds) {
+                checkbox.checked = false;
+                peerStatus.textContent = `Comparison limit reached (max ${maxSelectedFunds} funds). Clear one to add another.`;
+                return;
+              }
+              peerState.selectedSchemes.add(fund.scheme_name);
+            } else {
+              peerState.selectedSchemes.delete(fund.scheme_name);
+            }
+            updatePeerSelectedCount();
+            renderPeerFundList();
+            refreshPeerComparison();
+          });
+          const text = document.createElement("span");
+          const prefix = peerState.rankMode ? `#${index + 1} [${computeFundScore(fund)}/6] ` : "";
+          text.textContent = `${prefix}${fund.scheme_name} (${safeText(fund.category)})`;
+          left.appendChild(checkbox);
+          left.appendChild(text);
+          row.appendChild(left);
+          const compareBtn = document.createElement("button");
+          compareBtn.type = "button";
+          compareBtn.className = "ghost-button compare-mini-btn";
+          compareBtn.textContent = "Compare";
+          compareBtn.disabled = !checkbox.checked || peerState.selectedSchemes.size >= maxSelectedFunds;
+          compareBtn.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (compareBtn.disabled) {
+              return;
+            }
+            await handleCompareForFund(fund.scheme_name);
+          });
+          row.appendChild(compareBtn);
+          peerFundList.appendChild(row);
+        });
+      }
+
+      function updatePeerSelectedCount() {
+        peerSelectedCount.textContent = `Selected: ${peerState.selectedSchemes.size}`;
+      }
+
+      function parseReturnDiffs(anchor, candidate) {
+        const fields = [
+          "Return 1 Year (%) Direct",
+          "Return 3 Year (%) Direct",
+          "Return 5 Year (%) Direct",
+          "Return 10 Year (%) Direct",
+        ];
+        const diffs = {};
+        let sum = 0;
+        let used = 0;
+        fields.forEach((field) => {
+          const a = parseNumber(anchor[field]);
+          const b = parseNumber(candidate[field]);
+          if (a === null || b === null) {
+            diffs[field] = null;
+            return;
+          }
+          const d = Math.abs(a - b);
+          diffs[field] = d;
+          sum += d;
+          used += 1;
+        });
+        const avg = used > 0 ? sum / used : Number.POSITIVE_INFINITY;
+        return { diffs, avg, used };
+      }
+
+      function findNearestFundForComparison(anchorFund) {
+        const categoryKey = normalizeKey(anchorFund?.category || "");
+        if (!categoryKey) {
+          return null;
+        }
+
+        const categoryPool = peerState.funds.filter(
+          (fund) =>
+            fund.scheme_name !== anchorFund.scheme_name &&
+            !peerState.selectedSchemes.has(fund.scheme_name) &&
+            normalizeKey(fund.category) === categoryKey
+        );
+        if (!categoryPool.length) {
+          return null;
+        }
+
+        const anchorBenchmark = normalizeKey(anchorFund["Benchmark"]);
+        const benchmarkMatchedPool = categoryPool.filter(
+          (fund) => normalizeKey(fund["Benchmark"]) === anchorBenchmark
+        );
+        const pool = benchmarkMatchedPool.length ? benchmarkMatchedPool : categoryPool;
+
+        let best = null;
+        pool.forEach((candidate) => {
+          const diffResult = parseReturnDiffs(anchorFund, candidate);
+          const candidateScore = diffResult.avg;
+          const candidateInfo = {
+            candidate,
+            score: candidateScore,
+            usedReturns: diffResult.used,
+            diffs: diffResult.diffs,
+            benchmarkMatched: benchmarkMatchedPool.length > 0,
+          };
+          if (!best) {
+            best = candidateInfo;
+            return;
+          }
+          if (candidateInfo.score < best.score) {
+            best = candidateInfo;
+            return;
+          }
+          if (candidateInfo.score === best.score && candidateInfo.usedReturns > best.usedReturns) {
+            best = candidateInfo;
+          }
+        });
+
+        return best;
+      }
+
+      async function handleCompareForFund(anchorSchemeName) {
+        const anchorFund = peerState.funds.find((f) => f.scheme_name === anchorSchemeName);
+        if (!anchorFund) {
+          peerStatus.textContent = `Compare failed: anchor fund not found (${anchorSchemeName}).`;
+          return;
+        }
+        if (peerState.selectedSchemes.size >= maxSelectedFunds) {
+          peerStatus.textContent = `Comparison limit reached (max ${maxSelectedFunds} funds). Clear one to compare another.`;
+          return;
+        }
+
+        const nearest = findNearestFundForComparison(anchorFund);
+        if (!nearest) {
+          peerStatus.textContent = `No comparison fund found for ${anchorSchemeName} (category match required).`;
+          return;
+        }
+
+        peerState.selectedSchemes.add(nearest.candidate.scheme_name);
+        updatePeerSelectedCount();
+        renderPeerFundList();
+        await refreshPeerComparison();
+      }
+
+      async function fetchNavBundleStrictDirect(schemeName) {
+        if (peerState.navCache.has(schemeName)) return peerState.navCache.get(schemeName);
+        const series = peerState.amfiNavByScheme.get(schemeName);
+        if (!series || !series.length) {
+          const unmatched = { matched: false, reason: "No strict exact AMFI CSV scheme match." };
+          peerState.navCache.set(schemeName, unmatched);
+          return unmatched;
+        }
+        const baseDate = parseDdMmYyyy(comparisonBaseDateRaw);
+        const dailyPoints = [...series].sort((a, b) => a.date - b.date);
+        const basePoint = dailyPoints.find((point) => isSameCalendarDate(point.date, baseDate));
+        if (!basePoint) {
+          const noBase = { matched: false, reason: `No NAV found on base date ${comparisonBaseDateRaw}.` };
+          peerState.navCache.set(schemeName, noBase);
+          return noBase;
+        }
+        const filteredPoints = dailyPoints.filter((point) => point.date >= baseDate);
+        const latest = filteredPoints[filteredPoints.length - 1] || dailyPoints[dailyPoints.length - 1];
+        const bundle = {
+          matched: true,
+          points: filteredPoints,
+          latestNav: parseNumber(latest?.nav),
+          latestDate: latest?.rawDate || "NA",
+          baseNav: parseNumber(basePoint.nav),
+        };
+        peerState.navCache.set(schemeName, bundle);
+        return bundle;
+      }
+
+      async function loadAmfiNavCsvData() {
+        const response = await fetch(amfiNavCsvUrl);
+        if (!response.ok) throw new Error(`Unable to load AMFI NAV CSV (${response.status}).`);
+        const csvText = await response.text();
+        const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        const header = parseCsvRow(lines[0]);
+        const schemeIndex = header.indexOf("scheme_name");
+        const navDateIndex = header.indexOf("nav_date");
+        const navIndex = header.indexOf("nav");
+        if (schemeIndex === -1 || navDateIndex === -1 || navIndex === -1) {
+          throw new Error("AMFI NAV CSV missing required columns.");
+        }
+        const grouped = new Map();
+        for (let i = 1; i < lines.length; i += 1) {
+          const row = parseCsvRow(lines[i]);
+          const schemeName = String(row[schemeIndex] || "").trim();
+          const rawDate = String(row[navDateIndex] || "").trim();
+          const date = parseDdMmYyyy(rawDate);
+          const nav = parseNumber(row[navIndex]);
+          if (!schemeName || !date || nav === null) continue;
+          if (!grouped.has(schemeName)) grouped.set(schemeName, []);
+          grouped.get(schemeName).push({ date, nav, rawDate });
+        }
+        grouped.forEach((series, key) => {
+          series.sort((a, b) => a.date - b.date);
+          grouped.set(key, series);
+        });
+        peerState.amfiNavByScheme = grouped;
+        peerState.navCache.clear();
+      }
+
+      function renderPeerDetails(selectedFunds, navResults, consistencyColumns) {
+        peerDetails.innerHTML = "";
+        const colorByScheme = new Map(
+          selectedFunds.map((fund, index) => [fund.scheme_name, fundLinePalette[index % fundLinePalette.length]])
+        );
+        const rows = [
+          {
+            label: "Score (out of 6)",
+            renderCell: (fund) => {
+              const details = computeFundScoreDetails(fund);
+              const color = colorByScheme.get(fund.scheme_name) || "#e6e8ee";
+
+              const wrap = document.createElement("div");
+              wrap.className = "score-cell-wrap";
+
+              const scoreText = document.createElement("span");
+              scoreText.className = "score-value";
+              scoreText.style.color = color;
+              scoreText.textContent = `${details.total}/6`;
+              wrap.appendChild(scoreText);
+
+              const why = document.createElement("details");
+              why.className = "score-details";
+              const summary = document.createElement("summary");
+              summary.textContent = "Why";
+              why.appendChild(summary);
+
+              const list = document.createElement("ul");
+              list.className = "score-reason-list";
+              details.reasons.forEach((reason) => {
+                const li = document.createElement("li");
+                li.textContent = reason;
+                list.appendChild(li);
+              });
+              why.appendChild(list);
+              wrap.appendChild(why);
+              return wrap;
+            },
+          },
+          {
+            label: "Current NAV",
+            getValue: (fund, nav) =>
+              nav?.matched ? `${format2(nav.latestNav)} (${safeText(nav.latestDate)})` : "NA",
+          },
+          { label: "Benchmark", getValue: (fund) => safeText(fund["Benchmark"]) },
+          { label: "Riskometer", getValue: (fund) => safeText(fund["Riskometer Scheme"]) },
+          { label: "Return 1 Year (%) Direct", getValue: (fund) => format2(fund["Return 1 Year (%) Direct"]) },
+          { label: "Return 3 Year (%) Direct", getValue: (fund) => format2(fund["Return 3 Year (%) Direct"]) },
+          { label: "Return 5 Year (%) Direct", getValue: (fund) => format2(fund["Return 5 Year (%) Direct"]) },
+          { label: "Return 10 Year (%) Direct", getValue: (fund) => format2(fund["Return 10 Year (%) Direct"]) },
+          {
+            label: "Category Avg Return 1 Year (%) Direct",
+            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 1 Year (%) Direct")),
+          },
+          {
+            label: "Category Avg Return 3 Year (%) Direct",
+            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 3 Year (%) Direct")),
+          },
+          {
+            label: "Category Avg Return 5 Year (%) Direct",
+            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 5 Year (%) Direct")),
+          },
+          {
+            label: "Category Avg Return 10 Year (%) Direct",
+            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 10 Year (%) Direct")),
+          },
+          { label: "Alpha 1yr", getValue: (fund) => format2(fund["Alpha 1yr"]) },
+          { label: "Alpha 3yr", getValue: (fund) => format2(fund["Alpha 3yr"]) },
+          { label: "Alpha 5yr", getValue: (fund) => format2(fund["Alpha 5yr"]) },
+          { label: "Alpha 10yr", getValue: (fund) => format2(fund["Alpha 10yr"]) },
+          { label: "Return since launch", getValue: (fund) => format2(fund["Return Since Launch Direct"]) },
+          { label: "Current AUM", getValue: (fund) => format2(fund["Daily AUM (Cr.)"]) },
+          { label: "AUM Diff", getValue: (fund) => safeText(fund["aum diff"] || fund["AUM Change Dec"]) },
+          {
+            label: "Consistency 1Y (Direct)",
+            getValue: (fund) => format2(fund["Information Ratio* 1 Year (Direct)"]),
+          },
+          {
+            label: "Consistency 3Y (Direct)",
+            getValue: (fund) => format2(fund["Information Ratio* 3 Year (Direct)"]),
+          },
+          {
+            label: "Consistency 5Y (Direct)",
+            getValue: (fund) => format2(fund["Information Ratio* 5 Year (Direct)"]),
+          },
+          {
+            label: "Consistency 10Y (Direct)",
+            getValue: (fund) => format2(fund["Information Ratio* 10 Year (Regular)"]),
+          },
+          {
+            label: "NAV Std Dev (Rebased)",
+            getValue: (fund) => format2(fund["NAV Std Dev (Rebased)"]),
+          },
+          {
+            label: "Category Avg NAV Std Dev (Rebased)",
+            getValue: (fund) =>
+              format2(
+                fund["Category Avg NAV Std Dev (Rebased)"] ??
+                  getCategoryAverageValue(fund, "Category Avg NAV Std Dev (Rebased)")
+              ),
+          },
+          { label: "Direct Total TER (%)", getValue: (fund) => format2(fund["ter_Direct Plan - Total TER (%)"]) },
+          {
+            label: "Category Avg Direct TER (%)",
+            getValue: (fund) => format2(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)")),
+          },
+        ];
+
+        const wrap = document.createElement("div");
+        wrap.className = "comparison-table-wrap";
+        const table = document.createElement("table");
+        table.className = "comparison-table";
+        const thead = document.createElement("thead");
+        const headRow = document.createElement("tr");
+        const metricHead = document.createElement("th");
+        metricHead.textContent = "Metric";
+        headRow.appendChild(metricHead);
+        selectedFunds.forEach((fund) => {
+          const th = document.createElement("th");
+          const title = document.createElement("span");
+          title.textContent = safeText(fund.scheme_name);
+          th.appendChild(title);
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "ghost-button compare-mini-btn";
+          btn.style.marginLeft = "8px";
+          btn.textContent = "Compare";
+          btn.disabled = selectedFunds.length >= maxSelectedFunds;
+          btn.addEventListener("click", async () => {
+            if (btn.disabled) {
+              peerStatus.textContent = `Comparison limit reached (max ${maxSelectedFunds} funds). Clear one to compare another.`;
+              return;
+            }
+            await handleCompareForFund(fund.scheme_name);
+          });
+          th.appendChild(btn);
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        rows.forEach((metric) => {
+          const tr = document.createElement("tr");
+          const th = document.createElement("th");
+          th.textContent = metric.label;
+          tr.appendChild(th);
+          selectedFunds.forEach((fund) => {
+            const nav = navResults.get(fund.scheme_name);
+            const td = document.createElement("td");
+            if (typeof metric.renderCell === "function") {
+              td.classList.add("score-cell");
+              td.appendChild(metric.renderCell(fund, nav));
+            } else {
+              td.textContent = safeText(metric.getValue(fund, nav));
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        peerDetails.appendChild(wrap);
+      }
+
+      function renderPeerChart(selectedFunds, navResults) {
+        if (!peerChartCanvas || !window.Chart) return;
+        const datasets = [];
+        selectedFunds.forEach((fund, index) => {
+          const nav = navResults.get(fund.scheme_name);
+          if (!nav?.matched || !nav.points?.length || !nav.baseNav) return;
+          datasets.push({
+            label: fund.scheme_name,
+            data: nav.points.map((point) => ({ x: point.date, y: (point.nav / nav.baseNav) * 100 })),
+            borderColor: fundLinePalette[index % fundLinePalette.length],
+            backgroundColor: fundLinePalette[index % fundLinePalette.length],
+            borderWidth: 2,
+            pointRadius: 1.8,
+            tension: 0.2,
+          });
+        });
+        if (peerState.chart) peerState.chart.destroy();
+        peerState.chart = new window.Chart(peerChartCanvas, {
+          type: "line",
+          data: { datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: { mode: "nearest", intersect: false },
+            scales: {
+              x: {
+                type: "time",
+                time: { unit: "day", displayFormats: { day: "dd MMM yyyy" } },
+                ticks: { color: "#9aa3b2" },
+                grid: { color: "rgba(154, 163, 178, 0.2)" },
+              },
+              y: {
+                ticks: { color: "#9aa3b2" },
+                grid: { color: "rgba(154, 163, 178, 0.2)" },
+                title: {
+                  display: true,
+                  text: `Indexed NAV (Base=100 on ${comparisonBaseDateRaw})`,
+                  color: "#9aa3b2",
+                },
+              },
+            },
+            plugins: {
+              legend: { labels: { color: "#e6e8ee" } },
+              tooltip: {
+                callbacks: {
+                  afterBody: (items) => {
+                    const datasetLabel = items?.[0]?.dataset?.label;
+                    const fund = peerState.funds.find((row) => row.scheme_name === datasetLabel);
+                    if (!fund) return [];
+                    return [
+                      `Alpha 1Y: ${format2(fund["Alpha 1yr"])}`,
+                      `Alpha 3Y: ${format2(fund["Alpha 3yr"])}`,
+                      `Alpha 5Y: ${format2(fund["Alpha 5yr"])}`,
+                      `Alpha 10Y: ${format2(fund["Alpha 10yr"])}`,
+                    ];
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      async function refreshPeerComparison() {
+        const selectedFunds = peerState.funds.filter((row) => peerState.selectedSchemes.has(row.scheme_name));
+        if (!selectedFunds.length) {
+          peerStatus.textContent = "Select one or more funds to view peer comparison.";
+          peerDetails.innerHTML = "";
+          if (peerState.chart) peerState.chart.destroy();
+          peerState.chart = null;
+          return;
+        }
+        peerStatus.textContent = `Loading NAV data from AMFI CSV (daily, base date ${comparisonBaseDateRaw})...`;
+        const navResults = new Map();
+        const statusLines = [];
+        for (const fund of selectedFunds) {
+          try {
+            const navBundle = await fetchNavBundleStrictDirect(fund.scheme_name);
+            navResults.set(fund.scheme_name, navBundle);
+            statusLines.push(
+              navBundle.matched
+                ? `Matched: ${fund.scheme_name} -> points ${navBundle.points.length}`
+                : `Unmatched: ${fund.scheme_name} -> ${navBundle.reason}`
+            );
+          } catch (error) {
+            navResults.set(fund.scheme_name, { matched: false, reason: error.message });
+            statusLines.push(`Error: ${fund.scheme_name} -> ${error.message}`);
+          }
+        }
+        const consistencyColumns = pickConsistencyColumns(Object.keys(peerState.funds[0] || {}));
+        renderPeerChart(selectedFunds, navResults);
+        renderPeerDetails(selectedFunds, navResults, consistencyColumns);
+        peerStatus.textContent = statusLines.join("\n");
+      }
+
+      async function loadComparisonWorkbook() {
+        const response = await fetch(comparisonXlsxUrl);
+        if (!response.ok) throw new Error(`Unable to load Comparison workbook (${response.status}).`);
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = window.XLSX.read(arrayBuffer, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        const sheet =
+          workbook.Sheets["matched_only"] ||
+          workbook.Sheets["Comparison"] ||
+          workbook.Sheets[firstSheetName];
+        if (!sheet) throw new Error("Target sheet not found in workbook.");
+        const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: null });
+        const normalizedRows = rows
+          .map((row) => ({
+            ...row,
+            scheme_name: String(getValue(row, "scheme_name") || "").trim(),
+            category: String(getValue(row, "category") || "").trim(),
+          }))
+          .filter((row) => row.scheme_name);
+
+        peerState.categoryAverageRows = new Map();
+        normalizedRows.forEach((row) => {
+          if (normalizeKey(row.scheme_name).startsWith("category_avg_")) {
+            peerState.categoryAverageRows.set(normalizeKey(row.scheme_name), row);
+          }
+        });
+
+        peerState.funds = normalizedRows.filter(
+          (row) => !normalizeKey(row.scheme_name).startsWith("category_avg_")
+        );
+        peerState.selectedSchemes = new Set(peerState.funds.slice(0, 3).map((row) => row.scheme_name));
+        updatePeerSelectedCount();
+        updateRankingButtonState();
+        renderPeerFundList();
+      }
+
+      peerSearchInput?.addEventListener("input", renderPeerFundList);
+      peerRankingToggleButton?.addEventListener("click", () => {
+        peerState.rankMode = !peerState.rankMode;
+        updateRankingButtonState();
+        renderPeerFundList();
+      });
+      peerSelectAllButton?.addEventListener("click", async () => {
+        peerState.selectedSchemes = new Set(
+          getDisplayedFunds().slice(0, maxSelectedFunds).map((row) => row.scheme_name)
+        );
+        peerStatus.textContent = `Selected first ${maxSelectedFunds} funds (comparison limit).`;
+        updatePeerSelectedCount();
+        renderPeerFundList();
+        await refreshPeerComparison();
+      });
+      peerClearButton?.addEventListener("click", async () => {
+        peerState.selectedSchemes = new Set();
+        updatePeerSelectedCount();
+        renderPeerFundList();
+        await refreshPeerComparison();
+      });
+
+      (async () => {
+        try {
+          await loadComparisonWorkbook();
+          await loadAmfiNavCsvData();
+          await refreshPeerComparison();
+        } catch (error) {
+          peerStatus.textContent = `Peer comparison init failed: ${error.message}`;
+          console.error("Peer comparison initialization error.", error);
+        }
+      })();
+    </script>
+  </body>
+</html>

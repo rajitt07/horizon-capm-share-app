@@ -1,0 +1,388 @@
+scheme_name,match_status,chosen_amfi_scheme_name,match_reason,candidate_count
+Aditya Birla Sun Life Dividend Yield Fund,matched,Aditya Birla Sun Life Dividend Yield Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Dividend Yield Fund,matched,Baroda BNP Paribas Dividend Yield Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Franklin India Dividend Yield Fund,matched,Franklin India Dividend Yield Fund-Growth Plan,multi_match_direct_growth_priority,4
+HDFC Dividend Yield Fund,matched,HDFC Dividend Yield Fund - Growth Option Direct Plan,multi_match_direct_growth_priority,4
+ICICI Prudential Dividend Yield Equity Fund,matched,ICICI Prudential Dividend Yield Equity Fund Direct Plan Growth Option,multi_match_direct_growth_priority,4
+LIC MF Dividend Yield Fund,matched,LIC MF Dividend Yield Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+SBI Dividend Yield Fund,matched,SBI Dividend Yield Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Tata Dividend Yield Fund,matched,Tata Dividend Yield Fund-Direct Plan-Growth,multi_match_direct_growth_priority,6
+Aditya Birla Sun Life ELSS Tax Saver Fund,matched,Aditya Birla Sun Life ELSS Tax Saver Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Axis ELSS Tax Saver Fund,matched,Axis ELSS Tax Saver Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Bajaj Finserv ELSS Tax Saver Fund,matched,BAJAJ FINSERV ELSS TAX SAVER FUND - DIRECT - GROWTH,multi_match_direct_growth_priority,4
+Bandhan ELSS Tax saver Fund,matched,BANDHAN ELSS Tax Saver Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bank of India ELSS Tax Saver,matched,BANK OF INDIA ELSS Tax Saver -Direct Plan- Growth,multi_match_direct_growth_priority,6
+Baroda BNP Paribas ELSS Tax Saver Fund,matched,BARODA BNP PARIBAS ELSS Tax Saver Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Edelweiss ELSS Tax saver Fund,matched,Edelweiss ELSS Tax Saver Fund - Direct Plan-Growth Option,multi_match_direct_growth_priority,4
+Franklin India ELSS Tax Saver Fund,matched,Franklin India ELSS Tax Saver Fund-Growth,multi_match_direct_growth_priority,4
+Groww ELSS Tax Saver Fund,matched,Groww ELSS Tax Saver Fund (formerly known as Indiabulls Tax Savings Fund)- Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+HDFC ELSS Tax saver,matched,HDFC ELSS Tax saver - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HSBC ELSS Tax saver Fund,matched,HSBC ELSS Tax saver Fund - Direct Growth,multi_match_direct_growth_priority,4
+ICICI Prudential ELSS Tax Saver Fund,matched,ICICI Prudential ELSS Tax Saver Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India ELSS Tax Saver Fund,matched,Invesco India ELSS Tax Saver Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ITI ELSS Tax Saver Fund,matched,ITI ELSS Tax Saver Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+JM ELSS Tax Saver Fund,matched,JM ELSS Tax Saver Fund (Direct) - Growth Option,multi_match_direct_growth_priority,4
+Kotak ELSS Tax Saver Fund,matched,Kotak ELSS Tax Saver Fund-Growth,multi_match_direct_growth_priority,4
+LIC MF ELSS Tax Saver,matched,LIC MF ELSS Tax Saver-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife ELSS Tax Saver Fund,matched,Mahindra Manulife ELSS Tax Saver Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+Mirae Asset ELSS Tax Saver Fund,matched,Mirae Asset ELSS Tax Saver Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal ELSS Tax Saver Fund,matched,Motilal Oswal ELSS Tax Saver Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Navi ELSS Tax Saver Fund,matched,Navi ELSS Tax Saver Fund- Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+Nippon India ELSS Tax Saver Fund,matched,Nippon India ELSS Tax Saver Fund - Direct Plan Growth Plan - Growth Option,multi_match_direct_growth_priority,6
+NJ ELSS Tax Saver Scheme,matched,NJ ELSS Tax Saver Scheme Direct Growth,multi_match_direct_growth_priority,4
+Parag Parikh ELSS Tax Saver Fund,matched,Parag Parikh ELSS Tax Saver Fund- Direct Growth,multi_match_direct_growth_priority,2
+PGIM India ELSS Tax Saver Fund,matched,PGIM India ELSS Tax Saver Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Quant ELSS Tax Saver Fund,matched,quant ELSS Tax Saver Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quantum ELSS Tax Saver Fund,matched,Quantum ELSS Tax Saver Fund - Direct Plan Growth Option,multi_match_direct_growth_priority,4
+SBI ELSS Tax Saver Fund,matched,SBI ELSS Tax Saver FUND - DIRECT PLAN -GROWTH,multi_match_direct_growth_priority,4
+Shriram ELSS Tax Saver Fund,matched,Shriram ELSS Tax Saver Fund - Direct Growth,multi_match_direct_growth_priority,4
+Sundaram ELSS Tax Saver Fund,matched,Sundaram ELSS Tax Saver Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+Taurus ELSS Tax Saver Fund,matched,Taurus ELSS Tax Saver Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+WhiteOak Capital ELSS Tax Saver Fund,matched,WhiteOak Capital ELSS Tax Saver Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Flexi Cap Fund,matched,Aditya Birla Sun Life Flexi Cap Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Axis Flexi Cap Fund,matched,Axis Flexi Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bajaj Finserv Flexi Cap Fund,matched,Bajaj Finserv Flexi Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Bandhan Flexi Cap Fund,matched,BANDHAN Flexi Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Bank of India Flexi Cap Fund,matched,BANK OF INDIA Flexi Cap Fund Direct Plan -Growth,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Flexi Cap Fund,matched,Baroda BNP Paribas Flexi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Canara Robeco Flexi Cap Fund,matched,CANARA ROBECO FLEXICAP FUND - DIRECT PLAN - GROWTH OPTION,multi_match_direct_growth_priority,4
+Edelweiss Flexi Cap Fund,matched,Edelweiss Flexi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Franklin India Flexi Cap Fund,matched,Franklin India Flexi Cap Fund - Growth,multi_match_direct_growth_priority,4
+HDFC Flexi Cap Fund,matched,HDFC Flexi Cap Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Helios Flexi Cap Fund,matched,Helios Flexi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+HSBC Flexi Cap Fund,matched,HSBC Flexi Cap Fund - Direct Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Flexicap Fund,matched,ICICI Prudential Flexicap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India Flexi Cap Fund,matched,Invesco India Flexi Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ITI Flexi Cap Fund,matched,ITI Flexi Cap Fund- Direct Plan- Growth,multi_match_direct_growth_priority,4
+JioBlackRock Flexi Cap Fund,matched,JioBlackRock Flexi Cap Fund - Direct Plan - Growth Option,single_contains_match,1
+Mahindra Manulife Flexi Cap Fund,matched,Mahindra Manulife Flexi Cap Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+Mirae Asset Flexi Cap Fund,matched,Mirae Asset Flexi Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Flexi Cap Fund,matched,Motilal Oswal Flexi cap Fund Direct Plan-Growth Option,multi_match_direct_growth_priority,4
+Navi Flexi Cap Fund,matched,Navi Flexi Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,12
+Nippon India Flexi Cap Fund,matched,Nippon India Flexi Cap Fund - Direct Plan - Growth Plan - Growth Option,multi_match_direct_growth_priority,4
+NJ Flexi Cap Fund,matched,NJ Flexi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Parag Parikh Flexi Cap Fund,matched,Parag Parikh Flexi Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Shriram Flexi Cap Fund,matched,Shriram Flexi Cap Fund - Direct Growth,multi_match_direct_growth_priority,4
+Tata Flexi Cap Fund,matched,Tata Flexi Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,6
+Taurus Flexi Cap Fund,matched,Taurus Flexi Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+TRUSTMF Flexi Cap Fund,matched,TRUSTMF Flexi Cap Fund-Direct Plan- Growth,multi_match_direct_growth_priority,4
+Unifi Flexi Cap Fund,matched,Unifi Flexi Cap Fund - Direct Growth,multi_match_direct_growth_priority,2
+Union Flexi Cap Fund,matched,Union Flexi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+WhiteOak Capital Flexi Cap Fund,matched,WhiteOak Capital Flexi Cap Fund Direct Plan-Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Large & Mid Cap Fund,matched,Aditya Birla Sun Life Large & Mid Cap Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Axis Large & Mid Cap Fund,matched,Axis Large & Mid Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bajaj Finserv Large and Mid Cap Fund,matched,Bajaj Finserv Large and Mid Cap Fund- Direct Plan- Growth,multi_match_direct_growth_priority,4
+Bandhan Large & Mid Cap Fund,matched,Bandhan Large & Mid Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bank of India Large & Mid Cap Fund,matched,BANK OF INDIA Large & Mid Cap Fund Direct Plan-Growth,multi_match_direct_growth_priority,12
+Canara Robeco Large and Mid Cap Fund,matched,CANARA ROBECO LARGE AND MID CAP FUND - DIRECT PLAN - GROWTH OPTION,multi_match_direct_growth_priority,4
+Franklin India Large & Mid Cap Fund,matched,Franklin India Large & Mid Cap Fund - Growth Plan,multi_match_direct_growth_priority,4
+HDFC Large and Mid Cap Fund,matched,HDFC Large and Mid Cap Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Helios Large & Mid Cap Fund,matched,Helios Large & Mid Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+ICICI Prudential Large & Mid Cap Fund,matched,ICICI Prudential Large & Mid Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India Large & Mid Cap Fund,matched,Invesco India Large & Mid Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ITI Large & Mid Cap Fund,matched,ITI Large & Midcap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+JM Large & Mid Cap Fund,matched,JM Large & Mid Cap Fund (Direct) - Growth Option,multi_match_direct_growth_priority,4
+Kotak Large & Midcap Fund,matched,Kotak Large & Midcap Fund - Direct- Growth,multi_match_direct_growth_priority,4
+LIC MF Large & Mid Cap Fund,matched,LIC MF Large & Mid Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Large & Mid Cap Fund,matched,Mahindra Manulife Large & Mid Cap Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+Mirae Asset Large & Midcap Fund,matched,Mirae Asset Large & Midcap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Large and Midcap Fund,matched,Motilal Oswal Large and Midcap Fund - Direct Plan Growth,multi_match_direct_growth_priority,4
+Navi Large & Midcap Fund,matched,Navi Large & Midcap Fund- Direct Plan- Growth Option,multi_match_direct_growth_priority,8
+Nippon India Vision Large & Mid Cap Fund,matched,Nippon India Vision Large & Mid Cap Fund - Direct Plan Growth Plan - Bonus Option,multi_match_direct_growth_priority,3
+PGIM India Large and Midcap Fund,matched,PGIM India Large and Midcap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Tata Large & Mid Cap Fund,matched,Tata Large & MId Cap Fund -Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+WhiteOak Capital Large & Mid Cap Fund,matched,Whiteoak Capital Large & Mid Cap Fund Direct Plan Growth,multi_match_direct_growth_priority,2
+Aditya Birla Sun Life Large Cap Fund,matched,Aditya Birla Sun Life Large Cap Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Axis Large Cap Fund,matched,Axis Large Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bajaj Finserv Large Cap Fund,matched,BAJAJ FINSERV LARGE CAP FUND - DIRECT PLAN - GROWTH,multi_match_direct_growth_priority,4
+Bandhan Large Cap Fund,matched,BANDHAN Large Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Bank of India Large Cap Fund,matched,BANK OF INDIA Large Cap Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Large Cap Fund,matched,BARODA BNP PARIBAS LARGE CAP Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Canara Robeco Large Cap Fund,matched,CANARA ROBECO LARGE CAP FUND - DIRECT PLAN - GROWTH OPTION,multi_match_direct_growth_priority,4
+Edelweiss Large Cap Fund,matched,Edelweiss Large Cap Fund - Direct Plan-Growth option,multi_match_direct_growth_priority,8
+Franklin India Large Cap Fund,matched,Franklin India Large Cap Fund-Growth,multi_match_direct_growth_priority,4
+Groww Large Cap Fund,matched,Groww Largecap Fund (formerly known as Indiabulls Blue Chip Fund) - Direct Plan - Growth Option,multi_match_direct_growth_priority,10
+HDFC Large Cap Fund,matched,HDFC Large Cap Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HSBC Large Cap Fund,matched,HSBC Large Cap Fund - Direct Growth,multi_match_direct_growth_priority,4
+Invesco India Largecap Fund,matched,Invesco India Largecap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ITI Large Cap Fund,matched,ITI Large Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+JM Large Cap Fund,matched,JM Large Cap Fund (Direct) - Growth Option,multi_match_direct_growth_priority,12
+Kotak Large Cap Fund,matched,Kotak Large Cap Fund - Growth,multi_match_direct_growth_priority,4
+LIC MF Large Cap Fund,matched,LIC MF Large Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Large Cap Fund,matched,Mahindra Manulife Large Cap Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+Mirae Asset Large Cap Fund,matched,Mirae Asset Large Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Large Cap Fund,unmatched,,no_match,0
+Nippon India Large Cap Fund,matched,Nippon India Large Cap Fund - Direct Plan Growth Plan - Bonus Option,multi_match_direct_growth_priority,6
+PGIM India Large Cap Fund,matched,PGIM India Large Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+SBI Large Cap Fund,matched,SBI Large Cap FUND-DIRECT PLAN -GROWTH,multi_match_direct_growth_priority,4
+Tata Large Cap Fund,matched,Tata Large Cap Fund -Direct Plan Growth Option,multi_match_direct_growth_priority,4
+Taurus Large Cap Fund,matched,Taurus Large Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Union Largecap Fund,matched,Union Largecap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+WhiteOak Capital Large Cap Fund,matched,WhiteOak Capital Large Cap Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+Axis Midcap Fund,matched,Axis Midcap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bank of India Mid Cap Fund,matched,Bank of India Mid Cap Fund - Direct Plan Growth,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Mid Cap Fund,matched,BARODA BNP PARIBAS Mid Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Canara Robeco Mid Cap Fund,matched,Canara Robeco Mid Cap Fund- Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+Edelweiss Mid Cap Fund,matched,Edelweiss Mid Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Franklin India Mid Cap Fund,matched,Franklin India Mid Cap Fund-Growth,multi_match_direct_growth_priority,4
+HDFC Mid Cap Fund,matched,HDFC Mid Cap Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Helios Mid Cap Fund,matched,Helios Mid Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+ICICI Prudential Midcap Fund,matched,ICICI Prudential MidCap Fund - Direct Plan -  Growth,multi_match_direct_growth_priority,4
+ITI Mid Cap Fund,matched,ITI Mid Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+JM Midcap Fund,matched,JM Midcap Fund (Direct) - Growth,multi_match_direct_growth_priority,4
+Kotak Midcap Fund,matched,Kotak Midcap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Mid Cap Fund,matched,Mahindra Manulife Mid Cap Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+Mirae Asset Midcap Fund,matched,Mirae Asset Midcap Fund- Direct Growth Option,multi_match_direct_growth_priority,4
+Motilal Oswal Midcap Fund,matched,Motilal Oswal Midcap Fund-Direct Plan-Growth Option,multi_match_direct_growth_priority,4
+Nippon India Growth Mid Cap Fund,matched,NIPPON INDIA GROWTH MID CAP FUND - DIRECT Plan - IDCW Option,multi_match_direct_growth_priority,7
+PGIM India Midcap Fund,matched,PGIM India Midcap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+SBI Midcap Fund,matched,SBI MIDCAP FUND - DIRECT PLAN - GROWTH,multi_match_direct_growth_priority,4
+Sundaram Mid Cap Fund,matched,Sundaram Mid Cap Fund Direct Plan - Growth,multi_match_direct_growth_priority,4
+Tata Mid Cap Fund,matched,Tata Mid Cap Fund - Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+Taurus Mid Cap Fund,matched,Taurus Mid Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Union Midcap Fund,matched,Union Midcap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+WhiteOak Capital Mid Cap Fund,matched,WhiteOak Capital Mid Cap Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+Axis Multicap Fund,matched,Axis Multicap Fund - Direct Plan - IDCW,multi_match_direct_growth_priority,4
+Bajaj Finserv Multi Cap Fund,matched,BAJAJ FINSERV MULTI CAP FUND - DIRECT - GROWTH,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Multi Cap Fund,matched,Baroda BNP Paribas MULTI CAP FUND - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Canara Robeco Multi Cap Fund,matched,Canara Robeco Multi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Edelweiss Multi Cap Fund,matched,Edelweiss Multi Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Franklin India Multi Cap Fund,matched,Franklin India Multi Cap Fund - Growth,multi_match_direct_growth_priority,4
+Groww Multicap Fund,matched,Groww Multicap Fund - Direct - Growth,multi_match_direct_growth_priority,4
+HSBC Multi Cap Fund,matched,HSBC Multi Cap Fund - Direct - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Multicap Fund,matched,ICICI Prudential Multicap Fund - Direct Plan -  Growth,multi_match_direct_growth_priority,4
+Invesco India Multicap Fund,matched,Invesco India Multicap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+ITI Multi Cap Fund,matched,ITI Multi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Kotak Multicap Fund,matched,Kotak Multicap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+LIC MF Multi Cap Fund,matched,LIC MF Multi Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Multi Cap Fund,matched,Mahindra Manulife Multi Cap Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+Mirae Asset Multicap Fund,matched,Mirae Asset Multicap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Multi Cap Fund,matched,Motilal Oswal Multi Cap Fund-Direct Plan Growth,multi_match_direct_growth_priority,4
+PGIM India Multi Cap Fund,matched,PGIM India Multi Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Quant Multi Cap Fund,matched,quant Multi Cap Fund-GROWTH OPTION-Direct Plan,multi_match_direct_growth_priority,4
+Tata Multicap Fund,matched,Tata Multicap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,6
+Union Multicap Fund,matched,Union Multicap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+WhiteOak Capital Multi Cap Fund,matched,WhiteOak Capital Multi Cap Fund Direct Plan Growth,multi_match_direct_growth_priority,2
+Aditya Birla Sun Life Business Cycle Fund,matched,Aditya Birla Sun Life Business Cycle Fund-Direct Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Conglomerate Fund,matched,Aditya Birla Sun Life Conglomerate Fund-Direct Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Consumption Fund,matched,Aditya Birla Sun Life Consumption Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Digital India Fund,matched,Aditya Birla Sun Life Digital India Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life ESG Integration Strategy Fund,matched,Aditya Birla Sun Life ESG Integration Strategy Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Infrastructure Fund,matched,Aditya Birla Sun Life Infrastructure Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life International Equity Fund,matched,Aditya Birla Sun Life International Equity Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Manufacturing Equity Fund,matched,Aditya Birla Sun Life Manufacturing Equity Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life MNC Fund,matched,Aditya Birla Sun Life MNC Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life PSU Equity Fund,matched,Aditya Birla Sun Life PSU Equity Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Quant Fund,matched,Aditya Birla Sun Life Quant Fund - Direct Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Special Opportunities Fund,matched,Aditya Birla Sun Life Special Opportunities Fund-Direct-Growth,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Transportation and Logistics Fund,matched,Aditya Birla Sun Life Transportation and Logistics Fund-Direct Growth,multi_match_direct_growth_priority,4
+Axis Business Cycles Fund,matched,Axis Business Cycles Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Axis Consumption Fund,matched,Axis Consumption Fund Direct Plan - Growth,multi_match_direct_growth_priority,4
+Axis ESG Integration Strategy Fund,matched,Axis ESG Integration Strategy Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Axis India Manufacturing Fund,matched,Axis India Manufacturing Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Axis Innovation Fund,matched,Axis Innovation Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Axis Momentum Fund,matched,Axis Momentum Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Axis Quant Fund,matched,Axis Quant Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Axis Services Opportunities Fund,matched,Axis Services Opportunities Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Bajaj Finserv Banking and Financial Services Fund,matched,Bajaj Finserv Banking and Financial Services Fund - Direct - Growth,multi_match_direct_growth_priority,4
+Bajaj Finserv Consumption Fund,matched,BAJAJ FINSERV CONSUMPTION FUND - DIRECT - GROWTH,multi_match_direct_growth_priority,4
+Bajaj Finserv Healthcare Fund,matched,BAJAJ FINSERV HEALTHCARE FUND - DIRECT - GROWTH,multi_match_direct_growth_priority,4
+Bandhan Business Cycle Fund,matched,Bandhan Business Cycle Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bandhan Financial Services Fund,matched,BANDHAN FINANCIAL SERVICES FUND - DIRECT PLAN - GROWTH,multi_match_direct_growth_priority,4
+Bandhan Innovation Fund,matched,Bandhan Innovation Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bandhan Multi-Factor Fund,matched,Bandhan Multi-Factor Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bank of India Business Cycle Fund,matched,Bank of India Business Cycle Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bank of India Consumption Fund,matched,Bank of India Consumption Fund - Direct - Growth,multi_match_direct_growth_priority,4
+Bank of India Manufacturing & Infrastructure Fund,matched,BANK OF INDIA Manufacturing & Infrastructure Fund-Direct Plan-Growth,multi_match_direct_growth_priority,6
+Baroda BNP Paribas Banking and Financial Services Fund,matched,Baroda BNP Paribas Banking and Financial Services Fund - Direct - Growth Option,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Business Conglomerates Fund,matched,Baroda BNP Paribas Business Conglomerates Fund Direct Growth Option,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Business Cycle Fund,matched,Baroda BNP Paribas Business Cycle Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Energy Opportunities Fund,matched,Baroda BNP Paribas Energy Opportunities Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Health and Wellness Fund,matched,Baroda BNP Paribas Health and Wellness Fund Direct Growth,multi_match_direct_growth_priority,4
+Baroda BNP Paribas India Consumption Fund,matched,BARODA BNP PARIBAS India Consumption Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Innovation Fund,matched,Baroda BNP Paribas Innovation Fund Direct plan - Growth Option,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Manufacturing Fund,matched,Baroda BNP Paribas Manufacturing Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Canara Robeco Consumer Trends Fund,matched,CANARA ROBECO CONSUMER TRENDS FUND - DIRECT PLAN - GROWTH OPTION,multi_match_direct_growth_priority,4
+Canara Robeco Manufacturing Fund,matched,Canara Robeco Manufacturing Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Edelweiss Business Cycle Fund,matched,Edelweiss Business Cycle Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Edelweiss Consumption Fund,matched,Edelweiss Consumption Fund - Direct - Growth,multi_match_direct_growth_priority,4
+Edelweiss Recently Listed IPO Fund,matched,Edelweiss Recently Listed IPO Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+Edelweiss Technology Fund,matched,Edelweiss Technology Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Franklin Asian Equity Fund,matched,Franklin Asian Equity Fund - Growth Plan,multi_match_direct_growth_priority,4
+Franklin Build India Fund,matched,Franklin Build India Fund Growth Plan,multi_match_direct_growth_priority,4
+Franklin India Multi-Factor Fund,matched,Franklin India Multi-Factor Fund- Growth,multi_match_direct_growth_priority,4
+Franklin India Opportunities Fund,matched,Franklin India Opportunities Fund - Growth,multi_match_direct_growth_priority,4
+Franklin India Technology Fund,matched,Franklin India Technology Fund-Growth,multi_match_direct_growth_priority,4
+Groww Banking & Financial Services Fund,matched,Groww Banking & Financial Services Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+HDFC Business Cycle Fund,matched,HDFC Business Cycle Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Defence Fund,matched,HDFC Defence Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Housing Opportunities Fund,matched,HDFC Housing Opportunities Fund  - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Infrastructure Fund,matched,HDFC Infrastructure Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Innovation Fund,matched,HDFC INNOVATION FUND - DIRECT PLAN - GROWTH OPTION,multi_match_direct_growth_priority,4
+HDFC Manufacturing Fund,matched,HDFC Manufacturing fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC MNC Fund,matched,HDFC MNC Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Non-Cyclical Consumer Fund,matched,HDFC Non-Cyclical Consumer Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Pharma and Healthcare Fund,matched,HDFC Pharma and Healthcare Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Technology Fund,matched,HDFC Technology Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HDFC Transportation and Logistics Fund,matched,HDFC Transportation and Logistics Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Helios Financial Services Fund,matched,Helios Financial Services Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+HSBC Business Cycles Fund,matched,HSBC Business Cycles Fund - Direct Growth,multi_match_direct_growth_priority,4
+HSBC Consumption Fund,matched,HSBC Consumption Fund - Direct Growth,multi_match_direct_growth_priority,4
+HSBC Financial Services Fund,matched,HSBC Financial Services Fund - Direct Growth,multi_match_direct_growth_priority,4
+HSBC India Export Opportunities Fund,matched,HSBC India Export Opportunities Fund - Direct Growth,multi_match_direct_growth_priority,4
+HSBC Infrastructure Fund,matched,HSBC Infrastructure Fund - Direct Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Active Momentum Fund,matched,ICICI Prudential Active Momentum Fund - Direct Plan - Growth,multi_match_direct_growth_priority,2
+ICICI Prudential Bharat Consumption Fund,matched,ICICI Prudential Bharat Consumption Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+ICICI Prudential Business Cycle Fund,matched,ICICI Prudential Business Cycle Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Commodities Fund,matched,ICICI Prudential Commodities Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+ICICI Prudential Conglomerate Fund,matched,ICICI Prudential Conglomerate Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Equity Minimum Variance Fund,matched,ICICI Prudential Equity Minimum Variance Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential ESG Exclusionary Strategy Fund,matched,ICICI Prudential ESG Exclusionary Strategy Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential FMCG Fund,matched,ICICI Prudential FMCG Fund - Direct Plan -  Growth,multi_match_direct_growth_priority,4
+ICICI Prudential India Opportunities Fund,matched,ICICI Prudential India Opportunities Fund - Direct Plan - IDCW Option,multi_match_direct_growth_priority,4
+ICICI Prudential Infrastructure Fund,matched,ICICI Prudential Infrastructure Fund - Direct Plan -  Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Innovation Fund,matched,ICICI Prudential Innovation Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Manufacturing Fund,matched,ICICI Prudential Manufacturing Fund - Direct Plan - IDCW Option,multi_match_direct_growth_priority,4
+ICICI Prudential Pharma Healthcare and Diagnostics (P.H.D) Fund,matched,ICICI Prudential Pharma Healthcare and Diagnostics (P.H.D) Fund - Direct Plan - IDCW Option,multi_match_direct_growth_priority,4
+ICICI Prudential PSU Equity Fund,matched,ICICI Prudential PSU Equity Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Quality Fund,matched,ICICI Prudential Quality Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Quant Fund,matched,ICICI Prudential Quant Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Rural Opportunities Fund,matched,ICICI Prudential Rural Opportunities Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Technology Fund,matched,ICICI Prudential Technology Fund - Direct Plan -  Growth,multi_match_direct_growth_priority,4
+Invesco India Business Cycle Fund,matched,Invesco India Business Cycle Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India Consumption Fund,matched,Invesco India Consumption Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India ESG Integration Strategy Fund,matched,Invesco India ESG Integration Strategy Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India Financial Services Fund,matched,Invesco India Financial Services Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India Infrastructure Fund,matched,Invesco India Infrastructure Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Invesco India Manufacturing Fund,matched,Invesco India Manufacturing Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India PSU Equity Fund,matched,Invesco India PSU Equity Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India Technology Fund,matched,Invesco India Technology Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ITI Banking and Financial Services Fund,matched,ITI Banking and Financial Services Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+ITI Bharat Consumption Fund,matched,ITI Bharat Consumption Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Kotak Active Momentum Fund,matched,Kotak Active Momentum Fund - Direct Plan - Growth option,multi_match_direct_growth_priority,4
+Kotak Business Cycle Fund,matched,Kotak Business Cycle Fund-Direct Plan-IDCW option,multi_match_direct_growth_priority,3
+Kotak Consumption Fund,matched,Kotak Consumption Fund - Direct plan - Growth Option,multi_match_direct_growth_priority,4
+Kotak Energy Opportunities Fund,matched,Kotak Energy Opportunities Fund-Direct-Growth,multi_match_direct_growth_priority,4
+Kotak ESG Exclusionary Strategy Fund,matched,Kotak ESG Exclusionary Strategy Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Kotak Healthcare Fund,matched,Kotak Healthcare Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Kotak Infrastructure and Economic Reform Fund,matched,Kotak Infrastructure & Economic Reform Fund- Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+Kotak Manufacture In India Fund,matched,Kotak Manufacture in India Fund - Direct Plan Growth,multi_match_direct_growth_priority,4
+Kotak MNC Fund,matched,Kotak MNC Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Kotak Quant Fund,matched,Kotak Quant Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Kotak Rural Opportunities Fund,matched,Kotak Rural Opportunities Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Kotak Special Opportunities Fund,matched,Kotak Special Opportunities Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Kotak Technology Fund,matched,Kotak Technology Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Kotak Transportation & Logistics Fund,matched,Kotak Transportation & Logistics Fund-Direct Growth,multi_match_direct_growth_priority,4
+LIC MF Consumption Fund,matched,LIC MF Consumption Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+LIC MF Healthcare Fund,matched,LIC MF Healthcare Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+LIC MF Infrastructure Fund,matched,LIC MF Infrastructure Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+LIC MF Manufacturing Fund,matched,LIC MF Manufacturing Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Business Cycle Fund,matched,Mahindra Manulife Business Cycle Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Consumption Fund,matched,Mahindra Manulife Consumption Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Manufacturing Fund,matched,Mahindra Manulife Manufacturing Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Mirae Asset Banking and Financial Services Fund,matched,Mirae Asset Banking and Financial Services Fund Direct Growth,multi_match_direct_growth_priority,4
+Mirae Asset Great Consumer Fund,matched,Mirae Asset Great Consumer Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Mirae Asset Healthcare Fund,matched,Mirae Asset Healthcare Fund Direct Growth,multi_match_direct_growth_priority,4
+Mirae Asset Infrastructure Fund,matched,Mirae Asset Infrastructure Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Active Momentum Fund,matched,Motilal Oswal Active Momentum Fund- Direct-Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Business Cycle Fund,matched,Motilal Oswal Business Cycle Fund - Direct Plan- Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Consumption Fund,matched,Motilal Oswal Consumption Fund-Direct-Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Digital India Fund,matched,Motilal Oswal Digital India Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Infrastructure Fund,matched,Motilal Oswal Infrastructure Fund-Direct-Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Innovation Opportunities Fund,matched,Motilal Oswal Innovation Opportunities Fund - Direct Plan- Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Manufacturing Fund,matched,Motilal Oswal Manufacturing Fund - Direct Plan- Growth,multi_match_direct_growth_priority,3
+Motilal Oswal Quant Fund,matched,Motilal Oswal Quant Fund - Direct - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Services Fund,matched,Motilal Oswal Services Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Special Opportunities Fund,matched,Motilal Oswal Special Opportunities Fund - Direct - Growth,multi_match_direct_growth_priority,4
+Nippon India Active Momentum Fund,matched,Nippon India Active Momentum Fund-Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Nippon India Banking & Financial Services Fund,matched,Nippon India Banking & Financial Services Fund - Direct Plan Growth Plan - Bonus Option,multi_match_direct_growth_priority,6
+Nippon India Consumption Fund,matched,Nippon India Consumption Fund - Direct Plan Growth Plan - Bonus,multi_match_direct_growth_priority,6
+Nippon India Innovation Fund,matched,Nippon India Innovation Fund-Direct Plan-Growth Option,multi_match_direct_growth_priority,4
+Nippon India MNC Fund,matched,Nippon India MNC Fund- Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+Nippon India Pharma Fund,matched,Nippon India Pharma Fund - Direct Plan Growth Plan - Bonus Option,multi_match_direct_growth_priority,6
+Nippon India Power & Infra Fund,matched,Nippon India Power & Infra Fund - Direct Plan Growth Plan - Bonus Option,multi_match_direct_growth_priority,6
+Nippon India Quant Fund,matched,Nippon India Quant Fund - Direct Plan Growth Plan - Bonus Option,multi_match_direct_growth_priority,6
+Nippon India US Equity Opportunities Fund,matched,Nippon India US Equity Opportunities Fund- Direct Plan- Growth Plan- Growth Option,multi_match_direct_growth_priority,4
+PGIM India Healthcare Fund,matched,PGIM India Healthcare Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Quant BFSI Fund,matched,quant BFSI Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant Commodities Fund,matched,quant Commodities Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant Consumption Fund,matched,quant Consumption Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant ESG Integration Strategy Fund,matched,quant ESG Integration Strategy Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant Healthcare Fund,matched,quant Healthcare Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant Manufacturing Fund,matched,quant Manufacturing Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant Momentum Fund,matched,quant Momentum Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant PSU Fund,matched,quant PSU Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quant Teck Fund,matched,quant Teck Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Quantum Ethical Fund,matched,Quantum Ethical Fund - Direct Plan Growth Option,multi_match_direct_growth_priority,2
+SBI Automotive Opportunities Fund,matched,SBI Automotive Opportunities Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+SBI Energy Opportunities Fund,matched,SBI Energy Opportunities Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+SBI Equity Minimum Variance Fund,matched,SBI Equity Minimum Variance Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+SBI ESG Exclusionary Strategy Fund,matched,SBI ESG Exclusionary Strategy Fund - Direct Plan -Growth,multi_match_direct_growth_priority,4
+SBI Innovative Opportunities Fund,matched,SBI Innovative Opportunities Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+SBI MNC Fund,matched,SBI MNC FUND - DIRECT PLAN -GROWTH,multi_match_direct_growth_priority,4
+SBI Quant Fund,matched,SBI Quant Fund- Direct Plan- Growth,multi_match_direct_growth_priority,4
+Shriram Multi Sector Rotation Fund,matched,Shriram Multi Sector Rotation Fund - Direct Plan Growth Option,multi_match_direct_growth_priority,2
+Sundaram Business Cycle Fund,matched,Sundaram Business Cycle Fund Direct Plan Growth,multi_match_direct_growth_priority,6
+Sundaram Financial Services Opportunities Fund,matched,Sundaram Financial Services Opportunities Fund Direct Plan - Growth,multi_match_direct_growth_priority,4
+Sundaram Multi-Factor Fund,matched,Sundaram Multi-Factor Fund - Direct - Growth,multi_match_direct_growth_priority,6
+Sundaram Services Fund,matched,Sundaram Services Fund Direct Plan - Growth,multi_match_direct_growth_priority,6
+Tata Business Cycle Fund,matched,Tata Business Cycle Fund-Direct Plan-Growth,multi_match_direct_growth_priority,6
+Tata Digital India Fund,matched,Tata Digital India Fund-Direct Plan-Growth,multi_match_direct_growth_priority,6
+Tata Ethical Fund,matched,Tata Ethical Fund -Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+Tata Housing Opportunities Fund,matched,Tata Housing Opportunities Fund - Direct Plan - Growth,multi_match_direct_growth_priority,6
+Tata India Consumer Fund,matched,Tata India Consumer Fund-Direct Plan-Growth,multi_match_direct_growth_priority,6
+Tata India Innovation Fund,matched,Tata India Innovation Fund- Direct Growth,multi_match_direct_growth_priority,6
+Tata Infrastructure Fund,matched,Tata Infrastructure Fund -Direct Plan -Growth Option,multi_match_direct_growth_priority,4
+Tata Resources & Energy Fund,matched,Tata Resources & Energy Fund-Direct Plan-Growth,multi_match_direct_growth_priority,6
+Taurus Ethical Fund,matched,Taurus Ethical Fund - Direct Plan - Growth,multi_match_direct_growth_priority,6
+Taurus Infrastructure Fund,matched,Taurus Infrastructure Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Union Active Momentum Fund,matched,Union Active Momentum Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Union Business Cycle Fund,matched,Union Business Cycle Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Union Innovation & Opportunities Fund,matched,Union Innovation & Opportunities Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+WhiteOak Capital Banking & Financial Services Fund,matched,WhiteOak Capital Banking & Financial Services Fund - Direct Growth,multi_match_direct_growth_priority,2
+WhiteOak Capital Digital Bharat Fund,matched,WhiteOak Capital Digital Bharat Fund Direct Plan Growth,multi_match_direct_growth_priority,2
+WhiteOak Capital ESG Best-In-Class Strategy Fund,matched,WhiteOak Capital ESG Best-In-Class Strategy Fund Direct Plan Growth,multi_match_direct_growth_priority,2
+WhiteOak Capital Pharma and Healthcare Fund,unmatched,,no_match,0
+WhiteOak Capital Quality Equity Fund,matched,WhiteOak Capital Quality Equity Fund Direct Plan Growth,multi_match_direct_growth_priority,2
+Axis Small Cap Fund,matched,Axis Small Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bajaj Finserv Small Cap Fund,matched,BAJAJ FINSERV SMALL CAP FUND - DIRECT - GROWTH,multi_match_direct_growth_priority,4
+Bank of India Small Cap Fund,matched,BANK OF INDIA Small Cap Fund Direct Plan Growth,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Small Cap Fund,matched,Baroda BNP Paribas Small Cap Fund - Direct Plan - Growth option,multi_match_direct_growth_priority,4
+Canara Robeco Small Cap Fund,matched,CANARA ROBECO SMALL CAP FUND - DIRECT PLAN - GROWTH OPTION,multi_match_direct_growth_priority,4
+Edelweiss Small Cap Fund,matched,Edelweiss Small Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Franklin India Small Cap Fund,matched,Franklin India Small Cap Fund-Growth,multi_match_direct_growth_priority,4
+HDFC Small Cap Fund,matched,HDFC Small Cap Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+Helios Small Cap Fund,matched,Helios Small Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+HSBC Small Cap Fund,matched,HSBC Small Cap Fund - Direct Growth,multi_match_direct_growth_priority,4
+ICICI Prudential Smallcap Fund,matched,ICICI Prudential Smallcap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Invesco India Smallcap Fund,matched,Invesco India Smallcap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+ITI Small Cap Fund,matched,ITI Small Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+JM Small Cap Fund,matched,JM Small Cap Fund (Direct) - Growth Option,multi_match_direct_growth_priority,4
+Kotak Small Cap Fund,matched,Kotak-Small Cap Fund - Growth,multi_match_direct_growth_priority,4
+LIC MF Small Cap Fund,matched,LIC MF Small Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Small Cap Fund,matched,Mahindra Manulife Small Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Mirae Asset Small Cap Fund,matched,Mirae Asset Small Cap Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Motilal Oswal Small Cap Fund,matched,Motilal Oswal Small Cap Fund - Direct - Growth,multi_match_direct_growth_priority,4
+Nippon India Small Cap Fund,matched,Nippon India Small Cap Fund - Direct Plan Growth Plan - Bonus Option,multi_match_direct_growth_priority,6
+PGIM India Small Cap Fund,matched,PGIM India Small Cap Fund - Direct Plan- Growth Option,multi_match_direct_growth_priority,4
+Quantum Small Cap Fund,matched,QUANTUM SMALL CAP FUND - DIRECT PLAN GROWTH OPTION,multi_match_direct_growth_priority,2
+Sundaram Small Cap Fund,matched,Sundaram Small Cap Fund Direct Plan - Growth,multi_match_direct_growth_priority,4
+Tata Small Cap Fund,matched,Tata Small Cap Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Union Small Cap Fund,matched,Union Small Cap Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Aditya Birla Sun Life Value Fund,matched,Aditya Birla Sun Life Value Fund - Growth - Direct Plan,multi_match_direct_growth_priority,4
+Axis Value Fund,matched,Axis Value Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Bandhan Value Fund,matched,Bandhan Value Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Baroda BNP Paribas Value Fund,matched,Baroda BNP Paribas Value Fund - Direct Plan - Growth option,multi_match_direct_growth_priority,4
+Canara Robeco Value Fund,matched,Canara Robeco Value Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+Groww Value Fund,matched,Groww Value Fund (formerly known as Indiabulls Value Fund) - Direct Plan - Growth Option,multi_match_direct_growth_priority,10
+HDFC Value Fund,matched,HDFC Value Fund - Growth Option - Direct Plan,multi_match_direct_growth_priority,4
+HSBC Value Fund,matched,HSBC Value Fund - Direct Growth,multi_match_direct_growth_priority,4
+ITI Value Fund,matched,ITI Value Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4
+JM Value Fund,matched,JM Value Fund (Direct) - Growth Option,multi_match_direct_growth_priority,4
+LIC MF Value Fund,matched,LIC MF Value Fund-Direct Plan-Growth,multi_match_direct_growth_priority,4
+Mahindra Manulife Value Fund,matched,Mahindra Manulife Value Fund - Direct Plan - Growth,multi_match_direct_growth_priority,4
+Nippon India Value Fund,matched,Nippon India Value Fund - Direct Plan Growth Plan,multi_match_direct_growth_priority,4
+Sundaram Value Fund,matched,Sundaram Value Fund Direct Plan - Growth,multi_match_direct_growth_priority,4
+Tata Value Fund,matched,Tata Value Fund -Direct Plan Growth Option,multi_match_direct_growth_priority,6
+Templeton India Value Fund,matched,Templeton India Value Fund - Growth Plan,multi_match_direct_growth_priority,4
+Union Value Fund,matched,Union Value Fund - Direct Plan - Growth Option,multi_match_direct_growth_priority,4

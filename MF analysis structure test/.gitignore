@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# Excel temp lock files
+~$*.xlsx
+
+# Local backups
+*backup_before*.xlsx
+
