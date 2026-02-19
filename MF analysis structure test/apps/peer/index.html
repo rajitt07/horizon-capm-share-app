@@ -39,6 +39,16 @@
         color: #9aa3b2;
         margin: 0 0 10px 2px;
       }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .ranking-button.is-active {
+        border-color: #4d7cff;
+        color: #b8c9ff;
+      }
       .ghost-button {
         white-space: nowrap;
         padding: 8px 12px;
@@ -227,8 +237,11 @@
   </head>
   <body>
     <h1>Peer Comparison</h1>
-    <div class="panel">
-      <div class="section-title">Peer Comparison (Direct Plan)</div>
+      <div class="panel">
+        <div class="section-head">
+          <div class="section-title">Peer Comparison (Direct Plan)</div>
+          <button id="peer-ranking-toggle" type="button" class="ghost-button ranking-button">Ranking</button>
+        </div>
       <div class="peer-controls">
         <input
           id="peer-search"
@@ -266,6 +279,7 @@
       const peerSelectedCount = document.getElementById("peer-selected-count");
       const peerSelectAllButton = document.getElementById("peer-select-all");
       const peerClearButton = document.getElementById("peer-clear");
+      const peerRankingToggleButton = document.getElementById("peer-ranking-toggle");
       const peerChartCanvas = document.getElementById("peer-nav-chart");
 
       const peerState = {
@@ -274,6 +288,7 @@
         navCache: new Map(),
         amfiNavByScheme: new Map(),
         categoryAverageRows: new Map(),
+        rankMode: false,
         chart: null,
       };
       const maxSelectedFunds = 3;
@@ -493,17 +508,31 @@
         return { total, reasons };
       }
 
+      function getDisplayedFunds() {
+        if (!peerState.rankMode) return peerState.funds;
+        return [...peerState.funds].sort((a, b) => {
+          const scoreDiff = computeFundScore(b) - computeFundScore(a);
+          if (scoreDiff !== 0) return scoreDiff;
+          return String(a.scheme_name || "").localeCompare(String(b.scheme_name || ""));
+        });
+      }
+
+      function updateRankingButtonState() {
+        if (!peerRankingToggleButton) return;
+        peerRankingToggleButton.classList.toggle("is-active", peerState.rankMode);
+      }
+
       function renderPeerFundList() {
         const query = normalizeKey(peerSearchInput?.value || "");
         peerFundList.innerHTML = "";
-        const filtered = peerState.funds.filter((fund) => {
+        const filtered = getDisplayedFunds().filter((fund) => {
           if (!query) return true;
           return (
             normalizeKey(fund.scheme_name).includes(query) ||
             normalizeKey(fund.category).includes(query)
           );
         });
-        filtered.forEach((fund) => {
+        filtered.forEach((fund, index) => {
           const row = document.createElement("div");
           row.className = "peer-fund-item";
           const left = document.createElement("label");
@@ -527,7 +556,8 @@
             refreshPeerComparison();
           });
           const text = document.createElement("span");
-          text.textContent = `${fund.scheme_name} (${safeText(fund.category)})`;
+          const prefix = peerState.rankMode ? `#${index + 1} [${computeFundScore(fund)}/6] ` : "";
+          text.textContent = `${prefix}${fund.scheme_name} (${safeText(fund.category)})`;
           left.appendChild(checkbox);
           left.appendChild(text);
           row.appendChild(left);
@@ -1003,13 +1033,19 @@
         );
         peerState.selectedSchemes = new Set(peerState.funds.slice(0, 3).map((row) => row.scheme_name));
         updatePeerSelectedCount();
+        updateRankingButtonState();
         renderPeerFundList();
       }
 
       peerSearchInput?.addEventListener("input", renderPeerFundList);
+      peerRankingToggleButton?.addEventListener("click", () => {
+        peerState.rankMode = !peerState.rankMode;
+        updateRankingButtonState();
+        renderPeerFundList();
+      });
       peerSelectAllButton?.addEventListener("click", async () => {
         peerState.selectedSchemes = new Set(
-          peerState.funds.slice(0, maxSelectedFunds).map((row) => row.scheme_name)
+          getDisplayedFunds().slice(0, maxSelectedFunds).map((row) => row.scheme_name)
         );
         peerStatus.textContent = `Selected first ${maxSelectedFunds} funds (comparison limit).`;
         updatePeerSelectedCount();
