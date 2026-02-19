@@ -424,7 +424,7 @@
       function computeFundScore(fund) {
         const ret1 = parseNumber(fund["Return 1 Year (%) Direct"]);
         const catRet1 = parseNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
-        const aumChange = parseNumber(fund["AUM Change Dec"]);
+        const aumChange = parseNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
         const ter = parseNumber(fund["ter_Direct Plan - Total TER (%)"]);
         const catTer = parseNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
         const alpha1 = parseNumber(fund["Alpha 1yr"]);
@@ -446,7 +446,7 @@
       function computeFundScoreDetails(fund) {
         const ret1 = parseNumber(fund["Return 1 Year (%) Direct"]);
         const catRet1 = parseNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
-        const aumChange = parseNumber(fund["AUM Change Dec"]);
+        const aumChange = parseNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
         const ter = parseNumber(fund["ter_Direct Plan - Total TER (%)"]);
         const catTer = parseNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
         const alpha1 = parseNumber(fund["Alpha 1yr"]);
