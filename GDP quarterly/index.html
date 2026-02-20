@@ -217,12 +217,12 @@
       
       // For annual view, show 5-year interval ticks (1951, 1956, 1961, ... 2026)
       if (currentView === 'annual' && data.tickVals && data.tickText) {
+        baseLayout.xaxis.type = 'category';
         baseLayout.xaxis.tickmode = 'array';
         baseLayout.xaxis.tickvals = data.tickVals;
         baseLayout.xaxis.ticktext = data.tickText;
-        // Set explicit range to show all data from 1951 to 2025
-        baseLayout.xaxis.range = [-1, data.labels.length];
-        baseLayout.xaxis.autorange = false;
+        baseLayout.xaxis.categoryorder = 'array';
+        baseLayout.xaxis.categoryarray = data.labels;
       }
       
       return baseLayout;
