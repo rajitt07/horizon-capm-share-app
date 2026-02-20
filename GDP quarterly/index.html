@@ -220,6 +220,8 @@
         baseLayout.xaxis.tickmode = 'array';
         baseLayout.xaxis.tickvals = data.tickVals;
         baseLayout.xaxis.ticktext = data.tickText;
+        baseLayout.xaxis.categoryorder = 'array';
+        baseLayout.xaxis.categoryarray = data.labels;
       }
       
       return baseLayout;
