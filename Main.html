@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Horizon Inc Dashboards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020617;
+      --surface: #0f172a;
+      --surface-hover: #1e293b;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --border: rgba(148, 163, 184, 0.2);
+      --accent: #38bdf8;
+      --accent-dim: #0ea5e9;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #0b1120 0, var(--bg) 60%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+    }
+    .container {
+      max-width: 760px;
+      width: 100%;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+      margin: 0 0 10px 0;
+    }
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      display: block;
+      text-decoration: none;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 22px 24px;
+      text-align: center;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .card:hover {
+      background: var(--surface-hover);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
+    }
+    .card:hover::before {
+      opacity: 1;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+      color: #ef4444;
+    }
+    .card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Horizon Inc Dashboards</h1>
+      <p class="subtitle">Choose a module to open its interactive dashboards.</p>
+    </header>
+    <div class="cards">
+      <a href="EGARCH/index.html" class="card">
+        <h2 class="card-title">EGARCH</h2>
+        <p class="card-desc">EGARCH(1,1) for Nifty 50 volatility</p>
+      </a>
+      <a href="HP%20filter/app/index.html" class="card">
+        <h2 class="card-title">HP Filter</h2>
+        <p class="card-desc">Hodrick–Prescott filter, multi-series</p>
+      </a>
+      <a href="Holt%20Winters/app/index.html" class="card">
+        <h2 class="card-title">Holt Winters</h2>
+        <p class="card-desc">Multi-dataset forecasting</p>
+      </a>
+      <a href="GDP%20quarterly/index.html" class="card">
+        <h2 class="card-title">GDP Quarterly</h2>
+        <p class="card-desc">Quarterly GDP &amp; CPI</p>
+      </a>
+      <a href="CAPM/index.html" class="card">
+        <h2 class="card-title">CAPM</h2>
+        <p class="card-desc">CAPM dashboards</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
