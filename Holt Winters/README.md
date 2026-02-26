@@ -8,11 +8,9 @@ Pyodide-based app: select datasets (CPI, WPI, Nifty, IIP, GDP Quarterly, GDP Ann
 
 ### Option 1 — Use in the browser (no install)
 
-If GitHub Pages is enabled on the repo, open this link to use the app:
+**Shareable link:**
 
-**https://allwinromario.github.io/Horizon-Inc/Holt%20Winters/app/index.html**
-
-*(Repo owner: enable once under **Settings → Pages** → Deploy from branch **main**, folder **/ (root)**.)*
+**https://rajitt07.github.io/horizon-capm-share-app/Holt%20Winters/app/index.html**
 
 ### Option 2 — Run the code locally
 
