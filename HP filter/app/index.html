@@ -219,11 +219,11 @@
 
   <script>
     const SERIES_CONFIG = [
-      { id: 'gdpQ', name: 'GDP Quarterly', file: '../../2-GDP Quarterly.csv', rawCol: 10, logCol: 11, headerRow: 6, dataStartRow: 6, periodCols: [0, 1], color: '#2d6cdf' },
-      { id: 'gdpA', name: 'GDP Annual', file: '../../GDP-annual 1951.csv', rawCol: 18, logCol: 19, headerRow: 8, dataStartRow: 9, periodCol: 1, color: '#8e44ad' },
-      { id: 'cpi', name: 'CPI', file: '../../35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#e74c3c', invertColors: true },
-      { id: 'wpi', name: 'WPI', file: '../../35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#d35400', invertColors: true },
-      { id: 'nifty', name: 'Nifty 50', file: '../../Nifty 50 Historical Data (1).csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#27ae60' },
+      { id: 'gdpQ', name: 'GDP Quarterly', file: '../data/2-GDP Quarterly.csv', rawCol: 10, logCol: 11, headerRow: 6, dataStartRow: 6, periodCols: [0, 1], color: '#2d6cdf' },
+      { id: 'gdpA', name: 'GDP Annual', file: '../data/GDP-annual 1951.csv', rawCol: 18, logCol: 19, headerRow: 8, dataStartRow: 9, periodCol: 1, color: '#8e44ad' },
+      { id: 'cpi', name: 'CPI', file: '../data/35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#e74c3c', invertColors: true },
+      { id: 'wpi', name: 'WPI', file: '../data/35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#d35400', invertColors: true },
+      { id: 'nifty', name: 'Nifty 50', file: '../data/Nifty 50 Historical Data (1).csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#27ae60' },
       { id: 'iip', name: 'IIP', file: '../data/iip filtered.csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#16a085', isIIP: true }
     ];
 
@@ -1775,7 +1775,7 @@
               if (seriesData[cfg.id] && seriesData[cfg.id].length) loaded.push(cfg.id);
             } catch (e) { failed.push(cfg.id); }
           }
-          if (path === '../../35.csv' && rows.length) {
+          if (path === '../data/35.csv' && rows.length) {
             try {
               seriesData.repo = parseRepoRate(rows);
               if (seriesData.repo && seriesData.repo.length) loaded.push('repo');
