@@ -1755,35 +1755,57 @@
         files[cfg.file].push(cfg);
       }
 
-      try {
-        for (const path of Object.keys(files)) {
+      const loaded = [];
+      const failed = [];
+
+      for (const path of Object.keys(files)) {
+        try {
           const r = await fetch(path);
+          if (!r.ok) { failed.push(path); continue; }
           const text = await r.text();
           const rows = parseCSV(text);
           for (const cfg of files[path]) {
-            if (cfg.id === 'gdpQ') seriesData.gdpQ = parseGDPQuarterly(rows, cfg);
-            else if (cfg.id === 'gdpA') seriesData.gdpA = parseGDPAnnual(rows, cfg);
-            else if (cfg.id === 'cpi') seriesData.cpi = parseInflation(rows, cfg, '6.1   All India', 'Log CPI');
-            else if (cfg.id === 'wpi') seriesData.wpi = parseInflation(rows, cfg, '6.3   Wholesale', 'Log WPI');
-            else if (cfg.id === 'nifty') seriesData.nifty = parseNifty(rows, cfg);
-            else if (cfg.id === 'iip') seriesData.iip = parseIIP(rows, cfg);
+            try {
+              if (cfg.id === 'gdpQ') seriesData.gdpQ = parseGDPQuarterly(rows, cfg);
+              else if (cfg.id === 'gdpA') seriesData.gdpA = parseGDPAnnual(rows, cfg);
+              else if (cfg.id === 'cpi') seriesData.cpi = parseInflation(rows, cfg, '6.1   All India', 'Log CPI');
+              else if (cfg.id === 'wpi') seriesData.wpi = parseInflation(rows, cfg, '6.3   Wholesale', 'Log WPI');
+              else if (cfg.id === 'nifty') seriesData.nifty = parseNifty(rows, cfg);
+              else if (cfg.id === 'iip') seriesData.iip = parseIIP(rows, cfg);
+              if (seriesData[cfg.id] && seriesData[cfg.id].length) loaded.push(cfg.id);
+            } catch (e) { failed.push(cfg.id); }
           }
-          if (path === '../../35.csv') {
-            seriesData.repo = parseRepoRate(rows);
+          if (path === '../../35.csv' && rows.length) {
+            try {
+              seriesData.repo = parseRepoRate(rows);
+              if (seriesData.repo && seriesData.repo.length) loaded.push('repo');
+            } catch (e) { failed.push('repo'); }
           }
-        }
-
-        const counts = Object.entries(seriesData).map(([k, v]) => `${k}: ${v.length}`).join(', ');
-        status.textContent = 'Loaded: ' + counts;
-
-        for (const id of Object.keys(seriesData)) {
-          if (seriesModes[id] === 'log') computeHPForSeries(id);
-        }
-        buildSeriesUI();
-        updateView();
-      } catch (e) {
-        status.innerHTML = '<span class="error">' + e.message + '. Open via HTTP server or use file picker.</span>';
+        } catch (e) { failed.push(path); }
       }
+
+      const counts = Object.entries(seriesData).map(([k, v]) => (v && v.length) ? `${k}: ${v.length}` : null).filter(Boolean).join(', ');
+      if (counts) {
+        status.textContent = 'Loaded: ' + counts + (failed.length ? ' (some files not available on this server)' : '');
+      } else {
+        status.innerHTML = '<span class="error">No data loaded. ' + (failed.length ? 'Files missing or invalid.' : '') + ' Use file picker if available, or open via HTTP server with all data files.</span>';
+      }
+
+      // If default selection has no data, select first available series so something is visible
+      const hasSelectedWithData = getSelectedSeries().some(c => seriesData[c.id] && seriesData[c.id].length);
+      if (!hasSelectedWithData && Object.keys(seriesData).length) {
+        const firstId = Object.keys(seriesData).find(id => id !== 'repo' && seriesData[id] && seriesData[id].length);
+        if (firstId) {
+          for (const id of Object.keys(seriesSelected)) seriesSelected[id] = false;
+          seriesSelected[firstId] = true;
+        }
+      }
+
+      for (const id of Object.keys(seriesData)) {
+        if (seriesModes[id] === 'log') computeHPForSeries(id);
+      }
+      buildSeriesUI();
+      updateView();
     }
 
 
