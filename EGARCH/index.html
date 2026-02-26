@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EGARCH(1,1) for Nifty 50</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric-1.2.6.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 24px; background: #f5f6fa; color: #1a1a2e; }
+    .card { background: #fff; padding: 24px; border-radius: 12px; max-width: 1000px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .sub { color: #666; font-size: 0.9rem; margin-bottom: 16px; }
+    .step { background: #f8f9fa; border-left: 4px solid #2d6cdf; padding: 12px 16px; margin: 10px 0; font-size: 14px; }
+    .step h3 { margin: 0 0 6px 0; font-size: 13px; color: #2d6cdf; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; }
+    th { background: #f8f9fa; font-weight: 600; text-align: left; }
+    th.num, td.num { text-align: right; }
+    button.primary { padding: 10px 20px; border: none; background: #2d6cdf; color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    button.primary:hover { background: #2356b8; }
+    button.primary:disabled { background: #aaa; cursor: not-allowed; }
+    code { background: #e8eef6; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .stats { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0; }
+    .stats span { background: #e8eef6; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .coef-table { max-width: 360px; }
+    .chart-wrap { margin-top: 16px; }
+    canvas { display: block; max-width: 100%; height: 280px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; }
+    #log { font-family: monospace; font-size: 12px; background: #1e1e2e; color: #cdd6f4; padding: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; margin-top: 12px; }
+    .error { color: #c0392b; }
+    .success { color: #27ae60; }
+    .coef-inputs { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0; }
+    .coef-inputs label { font-size: 13px; display: flex; align-items: center; gap: 4px; }
+    .coef-inputs input[type="number"] { width: 72px; padding: 6px 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; }
+    button.secondary { padding: 6px 12px; border: 1px solid #2d6cdf; background: #fff; color: #2d6cdf; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    button.secondary:hover { background: #e8eef6; }
+    .compute-wrap { margin: 16px 0; }
+    .compute-wrap h4 { font-size: 13px; color: #2d6cdf; margin: 16px 0 8px 0; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
+    .compute-wrap h4:first-child { margin-top: 0; }
+    .compute-wrap table { font-size: 12px; }
+    .compute-wrap th, .compute-wrap td { padding: 6px 10px; }
+    .compute-wrap .formula { font-family: monospace; font-size: 11px; background: #f0f4f8; padding: 8px; border-radius: 6px; margin: 8px 0; white-space: pre-wrap; }
+    .compute-wrap .num { text-align: right; }
+    .conclusion-section { display: none; background: #e8f4fc; border: 1px solid #2d6cdf; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
+    .conclusion-section.visible { display: block; }
+    .conclusion-section h2 { font-size: 1.1rem; margin: 0 0 12px 0; color: #1a1a2e; border-bottom: 1px solid #2d6cdf; padding-bottom: 8px; }
+    .conclusion-section .conclusion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; font-size: 13px; }
+    .conclusion-section .conclusion-item { background: #fff; padding: 10px 12px; border-radius: 6px; border: 1px solid #d0e0f0; }
+    .conclusion-section .conclusion-item strong { display: block; color: #555; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+    .conclusion-section .conclusion-item span { color: #1a1a2e; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="conclusionWrap" class="conclusion-section" aria-live="polite"></div>
+
+    <h1>EGARCH(1,1) for Nifty 50</h1>
+    <p class="sub">Data is loaded automatically from <strong>NIFTY50-8mo.csv</strong> (Change % as returns). EGARCH is applied to the return series. Serve this page from the EGARCH folder (e.g. <code>python3 -m http.server 9876</code>) so the CSV can be fetched.</p>
+
+    <div class="step">
+      <h3>Data</h3>
+      <p>Returns from <strong>Change %</strong>; dates parsed and sorted. Mean is subtracted for the volatility model.</p>
+      <div class="stats" id="dataStats"></div>
+    </div>
+
+    <div class="step">
+      <h3>Step 1: Model</h3>
+      <p><strong>EGARCH(1,1)</strong> with Student's t distribution:</p>
+      <p style="margin: 8px 0; font-family: monospace; font-size: 12px;">ln(σ²_t) = ω + α·(|z_{t-1}| − E|z|) + γ·z_{t-1} + β·ln(σ²_{t-1})</p>
+      <p>Residual: z_t = (r_t − μ) / σ_t. <strong>γ &lt; 0</strong> ⇒ leverage effect (negative shocks increase volatility more).</p>
+      <button class="primary" id="btnFit" type="button" disabled>Fit EGARCH</button>
+    </div>
+
+    <div id="computeWrap" class="compute-wrap"></div>
+
+    <div id="dataTableWrap"></div>
+    <div id="resultsWrap"></div>
+    <div id="chartWrap" class="chart-wrap"></div>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    (function() {
+      const DATA_FILE = 'NIFTY50-8mo.csv';
+      const OPTIM_STARTS = [[-0.2, 0.1, 0.85, -0.1, 8], [-0.1, 0.15, 0.8, -0.15, 10], [0, 0.2, 0.75, -0.2, 6]];
+      const MAX_RECURSION_ROWS = 20;
+      const MAX_LL_ROWS = 20;
+
+      const logEl = document.getElementById('log');
+      const dataStatsEl = document.getElementById('dataStats');
+      const dataTableWrap = document.getElementById('dataTableWrap');
+      const resultsWrap = document.getElementById('resultsWrap');
+      const chartWrap = document.getElementById('chartWrap');
+      const computeWrap = document.getElementById('computeWrap');
+      const conclusionWrap = document.getElementById('conclusionWrap');
+      const btnFit = document.getElementById('btnFit');
+
+      function log(msg, isError) {
+        const p = document.createElement('div');
+        p.textContent = msg;
+        if (isError) p.className = 'error';
+        logEl.appendChild(p);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+      function clearLog() { logEl.innerHTML = ''; }
+
+      let data = [];
+      let lastFittedParams = null;
+      let lastNegll = null;
+
+      function getReturnsSummary(returns) {
+        const n = returns.length;
+        const mu = n ? returns.reduce((a, b) => a + b, 0) / n : 0;
+        const initVar = n > 0 ? returns.reduce((a, b) => a + (b - mu) ** 2, 0) / n : 0;
+        return { n, mu, initVar };
+      }
+
+      function parseCSV(text) {
+        const rows = [];
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) return [];
+        function splitCSVLine(line) {
+          const out = []; let cur = ''; let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '"') { inQuotes = !inQuotes; continue; }
+            if (!inQuotes && c === ',') { out.push(cur.trim()); cur = ''; continue; }
+            cur += c;
+          }
+          out.push(cur.trim());
+          return out;
+        }
+        const header = splitCSVLine(lines[0]);
+        let changeCol = -1;
+        for (let i = 0; i < header.length; i++) {
+          if (header[i].toLowerCase().includes('change') && header[i].includes('%')) { changeCol = i; break; }
+        }
+        if (changeCol < 0 && header.length >= 7) changeCol = 6;
+        for (let i = 1; i < lines.length; i++) {
+          const row = splitCSVLine(lines[i]);
+          if (row.length <= changeCol) continue;
+          const dateStr = row[0].replace(/^"|"$/g, '').trim();
+          const raw = String(row[changeCol]).replace(/%/g, '').replace(/,/g, '').trim();
+          const ret = parseFloat(raw);
+          if (Number.isNaN(ret) || !isFinite(ret)) continue;
+          rows.push({ date: dateStr, return: ret });
+        }
+        function parseDDMMYYYY(s) {
+          if (!s) return null;
+          const m = s.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/);
+          if (!m) return null;
+          let y = parseInt(m[3], 10);
+          if (y < 100) y += y >= 50 ? 1900 : 2000;
+          return new Date(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10)).getTime();
+        }
+        rows.sort((a, b) => {
+          const dA = parseDDMMYYYY(a.date), dB = parseDDMMYYYY(b.date);
+          return (dA && dB) ? (dA - dB) : 0;
+        });
+        return rows;
+      }
+
+      function renderDataStats() {
+        const rets = data.map(r => r.return);
+        const n = rets.length;
+        const mean = rets.reduce((a, b) => a + b, 0) / n;
+        const variance = rets.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+        const std = Math.sqrt(variance);
+        dataStatsEl.innerHTML = ['<span>N = ' + n + '</span>', '<span>Mean = ' + mean.toFixed(4) + '%</span>', '<span>Std = ' + std.toFixed(4) + '%</span>', '<span>Date range: ' + data[0].date + ' → ' + data[data.length - 1].date + '</span>'].join('');
+      }
+
+      function renderDataTable() {
+        let html = '<p style="margin-top:16px;"><strong>Returns (Change %)</strong></p><table><tr><th>Date</th><th class="num">Return %</th></tr>';
+        data.slice(0, 50).forEach(r => { html += '<tr><td>' + r.date + '</td><td class="num">' + r.return.toFixed(2) + '</td></tr>'; });
+        if (data.length > 50) html += '<tr><td colspan="2">… and ' + (data.length - 50) + ' more</td></tr>';
+        html += '</table>';
+        dataTableWrap.innerHTML = html;
+      }
+
+      function gamma(x) {
+        if (typeof math !== 'undefined' && math.gamma) return math.gamma(x);
+        if (x <= 0 || x > 100) return NaN;
+        const g = 7;
+        const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+        if (x < 0.5) return Math.PI / (Math.sin(Math.PI * x) * gamma(1 - x));
+        x -= 1;
+        let a = c[0];
+        for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+        const t = x + g + 0.5;
+        return Math.sqrt(2 * Math.PI) * Math.pow(t, x + 0.5) * Math.exp(-t) * a;
+      }
+
+      function expectedAbsZ(nu) {
+        if (nu <= 1) return NaN;
+        return 2 * Math.sqrt(nu / Math.PI) * gamma((nu + 1) / 2) / (gamma(nu / 2) * (nu - 1));
+      }
+
+      function egarchNegLogLikelihood(returns, omega, alpha, beta, gamma_coef, nu) {
+        const { n, mu, initVar } = getReturnsSummary(returns);
+        if (initVar <= 0 || !isFinite(initVar)) return 1e10;
+        if (nu <= 2.01) return 1e10;
+        const EabsZ = expectedAbsZ(nu);
+        if (!isFinite(EabsZ) || EabsZ <= 0) return 1e10;
+        let logSigma2 = Math.log(initVar);
+        const sigma2 = [], z = [];
+        for (let t = 0; t < n; t++) {
+          const sigma = Math.exp(0.5 * logSigma2);
+          if (sigma <= 0) return 1e10;
+          const resid = returns[t] - mu;
+          z[t] = resid / sigma;
+          sigma2[t] = Math.exp(logSigma2);
+          if (t < n - 1) logSigma2 = omega + alpha * (Math.abs(z[t]) - EabsZ) + gamma_coef * z[t] + beta * logSigma2;
+        }
+        const logC = Math.log(gamma((nu + 1) / 2)) - 0.5 * Math.log(Math.PI * nu) - Math.log(gamma(nu / 2));
+        let ll = 0;
+        for (let t = 0; t < n; t++) {
+          const s2 = sigma2[t];
+          if (s2 <= 0) return 1e10;
+          const sigma = Math.sqrt(s2);
+          const x = 1 + (returns[t] - mu) ** 2 / (nu * s2);
+          ll += logC - Math.log(sigma) - ((nu + 1) / 2) * Math.log(x);
+        }
+        return -ll;
+      }
+
+      function fitEGARCH() {
+        if (!data.length) return;
+        clearLog();
+        log('Fitting EGARCH(1,1) with Student\'s t…');
+        const returns = data.map(r => r.return);
+        const { n } = getReturnsSummary(returns);
+        if (n < 10) { log('Need at least 10 observations.', true); return; }
+        function obj(x) { return egarchNegLogLikelihood(returns, x[0], x[1], x[2], x[3], x[4]); }
+        let best = { f: Infinity, x: OPTIM_STARTS[0].slice(), index: 0 };
+        const optimValues = [];
+        for (let idx = 0; idx < OPTIM_STARTS.length; idx++) {
+          try {
+            const sol = numeric.uncmin(obj, OPTIM_STARTS[idx], 1e-6, 400);
+            const f = sol && sol.f !== undefined && isFinite(sol.f) ? sol.f : Infinity;
+            optimValues.push(f);
+            if (f < best.f) best = { f: sol.f, x: sol.x, index: idx };
+          } catch (e) { optimValues.push('—'); }
+        }
+        const x = best.x;
+        const omega = x[0], alpha = x[1], beta = x[2], gamma_coef = x[3], nu = Math.max(2.01, x[4]);
+        log('ω = ' + omega.toFixed(6) + ', α = ' + alpha.toFixed(6) + ', β = ' + beta.toFixed(6) + ', γ = ' + gamma_coef.toFixed(6) + ', ν = ' + nu.toFixed(2));
+        log('Persistence (α + β) = ' + (alpha + beta).toFixed(4));
+        if (gamma_coef < 0) log('Leverage effect: γ < 0 (negative shocks increase volatility more).', false);
+        log('Negative log-likelihood = ' + best.f.toFixed(4));
+        lastFittedParams = { omega, alpha, beta, gamma_coef, nu };
+        lastNegll = best.f;
+        const condVol = computeConditionalVolatility(returns, omega, alpha, beta, gamma_coef, nu);
+        renderComputationDetails(returns, omega, alpha, beta, gamma_coef, nu, best.f, { starts: OPTIM_STARTS, values: optimValues, bestIndex: best.index });
+        renderResults(omega, alpha, beta, gamma_coef, nu, best.f, condVol);
+        renderChart(condVol);
+        renderConclusion(returns, omega, alpha, beta, gamma_coef, nu, best.f, condVol);
+      }
+
+      function computeConditionalVolatility(returns, omega, alpha, beta, gamma_coef, nu) {
+        const { n, mu, initVar } = getReturnsSummary(returns);
+        const EabsZ = expectedAbsZ(nu);
+        let logSigma2 = Math.log(initVar);
+        const out = [];
+        for (let t = 0; t < n; t++) {
+          const sigma = Math.exp(0.5 * logSigma2);
+          const resid = returns[t] - mu;
+          const z = resid / sigma;
+          out.push({ date: data[t].date, vol: sigma });
+          if (t < n - 1) logSigma2 = omega + alpha * (Math.abs(z) - EabsZ) + gamma_coef * z + beta * logSigma2;
+        }
+        return out;
+      }
+
+      function getEgarchRecursionSteps(returns, omega, alpha, beta, gamma_coef, nu, maxSteps) {
+        const { n, mu, initVar } = getReturnsSummary(returns);
+        const EabsZ = expectedAbsZ(nu);
+        let logSigma2 = Math.log(initVar);
+        const steps = [];
+        for (let t = 0; t < Math.min(n, maxSteps); t++) {
+          const sigma = Math.exp(0.5 * logSigma2);
+          const resid = returns[t] - mu;
+          const z = resid / sigma;
+          const absZ = Math.abs(z);
+          const alphaTerm = alpha * (absZ - EabsZ);
+          const gammaTerm = gamma_coef * z;
+          const betaTerm = beta * logSigma2;
+          const nextLogSigma2 = (t < n - 1) ? omega + alphaTerm + gammaTerm + betaTerm : null;
+          steps.push({ t, date: data[t].date, r: returns[t], resid, sigma, z, absZ, logSigma2, alphaTerm, gammaTerm, betaTerm, nextLogSigma2 });
+          if (t < n - 1) logSigma2 = omega + alphaTerm + gammaTerm + betaTerm;
+        }
+        return { mu, initVar, EabsZ, steps };
+      }
+
+      function getLikelihoodContributions(returns, omega, alpha, beta, gamma_coef, nu, maxSteps) {
+        const { n, mu, initVar } = getReturnsSummary(returns);
+        const EabsZ = expectedAbsZ(nu);
+        const logC = Math.log(gamma((nu + 1) / 2)) - 0.5 * Math.log(Math.PI * nu) - Math.log(gamma(nu / 2));
+        let logSigma2 = Math.log(initVar);
+        const contribs = [];
+        for (let t = 0; t < Math.min(n, maxSteps); t++) {
+          const sigma = Math.exp(0.5 * logSigma2);
+          const resid = returns[t] - mu;
+          const z = resid / sigma;
+          const s2 = Math.exp(logSigma2);
+          const x = 1 + (resid * resid) / (nu * s2);
+          contribs.push({ t, date: data[t].date, sigma, resid, x, logDens: logC - Math.log(sigma) - ((nu + 1) / 2) * Math.log(x) });
+          if (t < n - 1) logSigma2 = omega + alpha * (Math.abs(z) - EabsZ) + gamma_coef * z + beta * logSigma2;
+        }
+        return { logC, contribs, totalNegLl: egarchNegLogLikelihood(returns, omega, alpha, beta, gamma_coef, nu) };
+      }
+
+      function renderComputationDetails(returns, omega, alpha, beta, gamma_coef, nu, negll, optimResults) {
+        const { n, mu, initVar } = getReturnsSummary(returns);
+        const EabsZ = expectedAbsZ(nu);
+        const persistence = alpha + beta;
+        const rec = getEgarchRecursionSteps(returns, omega, alpha, beta, gamma_coef, nu, MAX_RECURSION_ROWS);
+        const ll = getLikelihoodContributions(returns, omega, alpha, beta, gamma_coef, nu, MAX_LL_ROWS);
+        let html = '<div class="step"><h3>Step 2: Computation details</h3>';
+        html += '<h4>2.1 Input summary</h4><table class="coef-table"><tr><th>Quantity</th><th class="num">Value</th><th>Formula / meaning</th></tr>';
+        html += '<tr><td>N</td><td class="num">' + n + '</td><td>Number of returns</td></tr>';
+        html += '<tr><td>μ (mean)</td><td class="num">' + mu.toFixed(6) + '%</td><td>Sample mean of returns</td></tr>';
+        html += '<tr><td>σ²₀ (initial variance)</td><td class="num">' + initVar.toFixed(6) + '</td><td>Sample variance</td></tr>';
+        html += '<tr><td>E|z| (ν=' + nu.toFixed(2) + ')</td><td class="num">' + EabsZ.toFixed(6) + '</td><td>Expected |z| under Student t(ν)</td></tr></table>';
+        html += '<div class="formula">μ = (1/N) Σ r_t\nσ²₀ = (1/N) Σ (r_t − μ)²\nE|z| = 2√(ν/π) Γ((ν+1)/2) / (Γ(ν/2)(ν−1))</div>';
+        html += '<h4>2.2 Optimization (multiple starts)</h4><table><thead><tr><th>Start #</th><th>ω</th><th>α</th><th>β</th><th>γ</th><th>ν</th><th class="num">Neg. log-likelihood</th></tr></thead><tbody>';
+        (optimResults.starts || []).forEach(function(s, i) {
+          const f = optimResults.values ? optimResults.values[i] : (i === optimResults.bestIndex ? negll : '—');
+          const mark = i === optimResults.bestIndex ? ' <strong>✓ best</strong>' : '';
+          html += '<tr><td>' + (i + 1) + '</td><td>' + s[0].toFixed(4) + '</td><td>' + s[1].toFixed(4) + '</td><td>' + s[2].toFixed(4) + '</td><td>' + s[3].toFixed(4) + '</td><td>' + s[4].toFixed(2) + '</td><td class="num">' + (typeof f === 'number' ? f.toFixed(4) : f) + mark + '</td></tr>';
+        });
+        html += '</tbody></table><p>Minimizer: <code>numeric.uncmin</code>. Best start: #' + (optimResults.bestIndex + 1) + '.</p>';
+        html += '<h4>2.3 EGARCH recursion (first ' + rec.steps.length + ' steps)</h4><p>At each t: σ_t = exp(0.5·ln(σ²_t)); z_t = (r_t − μ)/σ_t; then ln(σ²_{t+1}) = ω + α·(|z_t|−E|z|) + γ·z_t + β·ln(σ²_t).</p>';
+        html += '<table><thead><tr><th>t</th><th>Date</th><th class="num">r_t (%)</th><th class="num">r_t−μ</th><th class="num">σ_t</th><th class="num">z_t</th><th class="num">|z_t|</th><th class="num">α·(|z|−E|z|)</th><th class="num">γ·z_t</th><th class="num">β·ln(σ²_t)</th><th class="num">ln(σ²_{t+1})</th></tr></thead><tbody>';
+        rec.steps.forEach(function(s) {
+          const next = s.nextLogSigma2 != null ? s.nextLogSigma2.toFixed(6) : '—';
+          html += '<tr><td>' + s.t + '</td><td>' + s.date + '</td><td class="num">' + s.r.toFixed(4) + '</td><td class="num">' + s.resid.toFixed(6) + '</td><td class="num">' + s.sigma.toFixed(6) + '</td><td class="num">' + s.z.toFixed(6) + '</td><td class="num">' + s.absZ.toFixed(6) + '</td><td class="num">' + s.alphaTerm.toFixed(6) + '</td><td class="num">' + s.gammaTerm.toFixed(6) + '</td><td class="num">' + s.betaTerm.toFixed(6) + '</td><td class="num">' + next + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        html += '<h4>2.4 Log-likelihood (Student t)</h4><p>Constant: log C = log Γ((ν+1)/2) − 0.5·log(π·ν) − log Γ(ν/2). Contribution at t: ℓ_t = log C − log σ_t − ((ν+1)/2)·log(1 + (r_t−μ)²/(ν·σ²_t)).</p>';
+        html += '<table><thead><tr><th>t</th><th>Date</th><th class="num">σ_t</th><th class="num">r_t−μ</th><th class="num">1+(r−μ)²/(νσ²)</th><th class="num">ℓ_t</th></tr></thead><tbody><tr><td colspan="5"><em>log C = ' + ll.logC.toFixed(6) + '</em></td><td class="num">—</td></tr>';
+        ll.contribs.forEach(function(c) {
+          html += '<tr><td>' + c.t + '</td><td>' + c.date + '</td><td class="num">' + c.sigma.toFixed(6) + '</td><td class="num">' + c.resid.toFixed(6) + '</td><td class="num">' + c.x.toFixed(6) + '</td><td class="num">' + c.logDens.toFixed(6) + '</td></tr>';
+        });
+        html += '</tbody></table><p><strong>Total log-likelihood</strong> (all ' + n + ' obs): LL = ' + (-negll).toFixed(4) + ' &nbsp; ⇒ &nbsp; <strong>Negative LL = ' + negll.toFixed(4) + '</strong></p>';
+        html += '<h4>2.5 Final coefficients and formulas</h4><table class="coef-table"><tr><th>Parameter</th><th class="num">Value</th></tr>';
+        html += '<tr><td>ω</td><td class="num">' + omega.toFixed(6) + '</td></tr><tr><td>α</td><td class="num">' + alpha.toFixed(6) + '</td></tr><tr><td>β</td><td class="num">' + beta.toFixed(6) + '</td></tr><tr><td>γ</td><td class="num">' + gamma_coef.toFixed(6) + '</td></tr><tr><td>ν</td><td class="num">' + nu.toFixed(2) + '</td></tr><tr><td>Persistence (α+β)</td><td class="num">' + persistence.toFixed(6) + '</td></tr></table>';
+        html += '<div class="formula">ln(σ²_t) = ω + α·(|z_{t-1}| − E|z|) + γ·z_{t-1} + β·ln(σ²_{t-1})\nz_t = (r_t − μ) / σ_t</div></div>';
+        computeWrap.innerHTML = html;
+      }
+
+      function negLogLikelihoodConstantVar(returns, nu) {
+        const { n, mu, initVar } = getReturnsSummary(returns);
+        if (n < 2 || initVar <= 0 || nu <= 2.01) return Infinity;
+        const logC = Math.log(gamma((nu + 1) / 2)) - 0.5 * Math.log(Math.PI * nu) - Math.log(gamma(nu / 2));
+        let ll = 0;
+        for (let t = 0; t < n; t++) {
+          const x = 1 + (returns[t] - mu) ** 2 / (nu * initVar);
+          ll += logC - Math.log(Math.sqrt(initVar)) - ((nu + 1) / 2) * Math.log(x);
+        }
+        return -ll;
+      }
+
+      function renderConclusion(returns, omega, alpha, beta, gamma_coef, nu, negll, condVol) {
+        if (!returns.length || !condVol.length || !data.length) { conclusionWrap.classList.remove('visible'); conclusionWrap.innerHTML = ''; return; }
+        const { n, mu, initVar } = getReturnsSummary(returns);
+        const avgVol = condVol.reduce((s, r) => s + r.vol, 0) / condVol.length;
+        const negLLConst = negLogLikelihoodConstantVar(returns, nu);
+        const pseudoR2 = (isFinite(negLLConst) && negLLConst > 0 && isFinite(negll)) ? Math.max(0, 100 * (1 - negll / negLLConst)) : null;
+        var lambda = parseFloat(document.getElementById('coef_lambda') && document.getElementById('coef_lambda').value) || 0;
+        var lastSigma = condVol.length ? condVol[condVol.length - 1].vol : 0;
+        var expectedReturn = mu + lambda * lastSigma;
+        var expectedReturnLabel = lambda !== 0 ? 'Expected return (μ + λ·σ_T)' : 'Expected return (μ)';
+        let html = '<h2>Results</h2><div class="conclusion-grid">';
+        html += '<div class="conclusion-item"><strong>Dataset</strong><span>' + DATA_FILE + '</span></div>';
+        html += '<div class="conclusion-item"><strong>Time range</strong><span>' + data[0].date + ' → ' + data[data.length - 1].date + '</span></div>';
+        html += '<div class="conclusion-item"><strong>Sample size (N)</strong><span>' + n + ' returns</span></div>';
+        html += '<div class="conclusion-item"><strong>' + expectedReturnLabel + '</strong><span>' + expectedReturn.toFixed(4) + '%</span></div>';
+        html += '<div class="conclusion-item"><strong>Estimated standard deviation (volatility)</strong><span>' + avgVol.toFixed(4) + '%</span></div>';
+        html += '<div class="conclusion-item"><strong>Neg. log-likelihood (MLE)</strong><span>' + (isFinite(negll) ? negll.toFixed(4) : '—') + '</span></div>';
+        html += '<div class="conclusion-item"><strong>% accuracy of expected returns (MLE)</strong><span>' + (pseudoR2 != null ? pseudoR2.toFixed(2) + '% (vs constant variance)' : '—') + '</span></div>';
+        html += '<div class="conclusion-item"><strong>Key parameters (ω, α, β, γ, ν)</strong><span>' + omega.toFixed(4) + ', ' + alpha.toFixed(4) + ', ' + beta.toFixed(4) + ', ' + gamma_coef.toFixed(4) + ', ' + nu.toFixed(2) + '</span></div>';
+        html += '<div class="conclusion-item"><strong>Persistence (α+β)</strong><span>' + (alpha + beta).toFixed(4) + '</span></div></div>';
+        html += '<p style="margin-top:14px;margin-bottom:6px;"><strong>Expected return forecast</strong></p>';
+        html += '<table class="coef-table" style="max-width:320px;"><thead><tr><th>Month</th><th class="num">Expected return (%)</th></tr></thead><tbody>';
+        html += '<tr><td>Dec 2025</td><td class="num">' + expectedReturn.toFixed(4) + '</td></tr>';
+        html += '<tr><td>Jan 2026</td><td class="num">' + expectedReturn.toFixed(4) + '</td></tr>';
+        html += '</tbody></table>';
+        conclusionWrap.innerHTML = html;
+        conclusionWrap.classList.add('visible');
+      }
+
+      function renderResults(omega, alpha, beta, gamma_coef, nu, negll, condVol) {
+        const persistence = alpha + beta;
+        let html = '<div class="step"><h3>Estimated coefficients</h3><table class="coef-table"><tr><th>Parameter</th><th class="num">Value</th></tr>';
+        html += '<tr><td>ω (omega)</td><td class="num" id="coefTable_omega">' + omega.toFixed(6) + '</td></tr><tr><td>α (alpha)</td><td class="num" id="coefTable_alpha">' + alpha.toFixed(6) + '</td></tr><tr><td>β (beta)</td><td class="num" id="coefTable_beta">' + beta.toFixed(6) + '</td></tr><tr><td>γ (gamma)</td><td class="num" id="coefTable_gamma">' + gamma_coef.toFixed(6) + '</td></tr><tr><td>ν (nu)</td><td class="num" id="coefTable_nu">' + nu.toFixed(2) + '</td></tr>';
+        html += '<tr><td>Persistence (α+β)</td><td class="num" id="manualPersistence">' + persistence.toFixed(4) + '</td></tr><tr><td>Neg. log-likelihood</td><td class="num" id="manualNegll">' + negll.toFixed(4) + '</td></tr></table>';
+        html += '<p style="margin-top:14px;"><strong>Manual coefficients</strong> (edit to update computation automatically):</p><div class="coef-inputs">';
+        html += '<label>ω <input type="number" id="coef_omega" step="0.01" value="' + omega + '"></label><label>α <input type="number" id="coef_alpha" step="0.01" value="' + alpha + '"></label><label>β <input type="number" id="coef_beta" step="0.01" value="' + beta + '"></label><label>γ <input type="number" id="coef_gamma" step="0.01" value="' + gamma_coef + '"></label><label>ν <input type="number" id="coef_nu" step="0.1" min="2.01" value="' + nu.toFixed(2) + '"></label><label>λ (risk premium) <input type="number" id="coef_lambda" step="0.01" value="0"></label>';
+        html += '<button type="button" class="secondary" id="btnResetFitted">Reset to fitted</button></div>';
+        html += '<p style="margin-top:10px;"><strong>Conditional volatility</strong> (first 30 dates):</p><table><thead><tr><th>Date</th><th class="num">σ_t (%)</th></tr></thead><tbody id="condVolTableBody">';
+        condVol.slice(0, 30).forEach(r => { html += '<tr><td>' + r.date + '</td><td class="num">' + r.vol.toFixed(4) + '</td></tr>'; });
+        if (condVol.length > 30) html += '<tr><td colspan="2">… and ' + (condVol.length - 30) + ' more</td></tr>';
+        html += '</tbody></table></div>';
+        resultsWrap.innerHTML = html;
+        const ids = ['coef_omega', 'coef_alpha', 'coef_beta', 'coef_gamma', 'coef_nu', 'coef_lambda'];
+        const handler = () => updateFromManualParams();
+        ids.forEach(id => { const el = document.getElementById(id); if (el) { el.removeEventListener('input', handler); el.removeEventListener('change', handler); el.addEventListener('input', handler); el.addEventListener('change', handler); } });
+        const btn = document.getElementById('btnResetFitted');
+        if (btn) btn.onclick = function() {
+          if (!lastFittedParams) return;
+          document.getElementById('coef_omega').value = lastFittedParams.omega;
+          document.getElementById('coef_alpha').value = lastFittedParams.alpha;
+          document.getElementById('coef_beta').value = lastFittedParams.beta;
+          document.getElementById('coef_gamma').value = lastFittedParams.gamma_coef;
+          document.getElementById('coef_nu').value = lastFittedParams.nu.toFixed(2);
+          updateFromManualParams();
+        };
+      }
+
+      function updateFromManualParams() {
+        const omega = parseFloat(document.getElementById('coef_omega').value);
+        const alpha = parseFloat(document.getElementById('coef_alpha').value);
+        const beta = parseFloat(document.getElementById('coef_beta').value);
+        const gamma_coef = parseFloat(document.getElementById('coef_gamma').value);
+        let nu = parseFloat(document.getElementById('coef_nu').value);
+        if (!data.length) return;
+        if ([omega, alpha, beta, gamma_coef, nu].some(v => Number.isNaN(v) || !isFinite(v))) return;
+        nu = Math.max(2.01, nu);
+        const returns = data.map(r => r.return);
+        const condVol = computeConditionalVolatility(returns, omega, alpha, beta, gamma_coef, nu);
+        const negll = egarchNegLogLikelihood(returns, omega, alpha, beta, gamma_coef, nu);
+        const negllVal = isFinite(negll) ? negll : 0;
+        const persistence = alpha + beta;
+        const coefTableIds = ['coefTable_omega', 'coefTable_alpha', 'coefTable_beta', 'coefTable_gamma', 'coefTable_nu'];
+        const coefVals = [omega.toFixed(6), alpha.toFixed(6), beta.toFixed(6), gamma_coef.toFixed(6), nu.toFixed(2)];
+        coefTableIds.forEach(function(id, i) { const el = document.getElementById(id); if (el) el.textContent = coefVals[i]; });
+        const persistenceEl = document.getElementById('manualPersistence');
+        const negllEl = document.getElementById('manualNegll');
+        const tbody = document.getElementById('condVolTableBody');
+        if (persistenceEl) persistenceEl.textContent = persistence.toFixed(4);
+        if (negllEl) negllEl.textContent = (isFinite(negll) ? negll : '—').toFixed(4);
+        if (tbody) {
+          let rows = '';
+          condVol.slice(0, 30).forEach(r => { rows += '<tr><td>' + r.date + '</td><td class="num">' + r.vol.toFixed(4) + '</td></tr>'; });
+          if (condVol.length > 30) rows += '<tr><td colspan="2">… and ' + (condVol.length - 30) + ' more</td></tr>';
+          tbody.innerHTML = rows;
+        }
+        renderChart(condVol);
+        renderConclusion(returns, omega, alpha, beta, gamma_coef, nu, negllVal, condVol);
+        var manualOptim = { starts: [[omega, alpha, beta, gamma_coef, nu]], values: [negll], bestIndex: 0 };
+        renderComputationDetails(returns, omega, alpha, beta, gamma_coef, nu, negllVal, manualOptim);
+      }
+
+      function renderChart(condVol) {
+        if (!condVol.length) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = 900;
+        canvas.height = 280;
+        chartWrap.innerHTML = '<p><strong>Conditional volatility over time</strong></p>';
+        chartWrap.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        const pad = { left: 56, right: 24, top: 20, bottom: 36 };
+        const plotW = w - pad.left - pad.right, plotH = h - pad.top - pad.bottom;
+        const vols = condVol.map(r => r.vol);
+        const minV = Math.min(...vols), maxV = Math.max(...vols), range = (maxV - minV) || 1;
+        const scaleY = v => pad.top + plotH - ((v - minV) / range) * plotH;
+        const scaleX = i => pad.left + (i / Math.max(1, condVol.length - 1)) * plotW;
+        ctx.fillStyle = '#fafafa';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#2d6cdf';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        condVol.forEach((r, i) => { if (i === 0) ctx.moveTo(scaleX(i), scaleY(r.vol)); else ctx.lineTo(scaleX(i), scaleY(r.vol)); });
+        ctx.stroke();
+        ctx.fillStyle = '#333';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Time (observation index)', pad.left + plotW / 2, h - 8);
+        ctx.save();
+        ctx.translate(14, pad.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('Conditional volatility σ_t (%)', 0, 0);
+        ctx.restore();
+        ctx.textAlign = 'right';
+        [minV, (minV + maxV) / 2, maxV].forEach(v => { const y = scaleY(v); ctx.fillText(v.toFixed(2), pad.left - 6, y + 4); });
+      }
+
+      btnFit.addEventListener('click', fitEGARCH);
+
+      clearLog();
+      log('Loading ' + DATA_FILE + '…');
+      fetch(DATA_FILE)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(text => {
+          data = parseCSV(text);
+          if (!data.length) { log('No valid rows in CSV (need Date and Change %).', true); return; }
+          renderDataStats();
+          renderDataTable();
+          btnFit.disabled = false;
+          log('Loaded ' + data.length + ' returns from ' + DATA_FILE + '. Click "Fit EGARCH" to run.', false);
+        })
+        .catch(() => { log('Could not load ' + DATA_FILE + '. Serve this page from the EGARCH folder (e.g. python3 -m http.server 9876).', true); });
+    })();
+  </script>
+</body>
+</html>
