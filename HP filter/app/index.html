@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hodrick–Prescott Filter | Multi-Series</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f0f2f5; }
+    .card {
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      max-width: 1400px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.06);
+    }
+    h1 { font-size: 1.5rem; color: #1a1a2e; margin-bottom: 8px; }
+    .sub { color: #666; font-size: 0.9rem; margin-bottom: 16px; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .series-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .series-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+    }
+    .series-item input[type="checkbox"] { cursor: pointer; }
+    .series-item label { font-size: 13px; cursor: pointer; }
+    .series-item .mode-toggle {
+      display: flex;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .series-item .mode-toggle button {
+      padding: 4px 10px;
+      border: none;
+      background: #e8e8e8;
+      color: #555;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .series-item .mode-toggle button.active {
+      background: #2d6cdf;
+      color: #fff;
+    }
+    .series-item .mode-toggle button:not(.active):hover { background: #ddd; }
+    .series-item .lambda-wrap {
+      display: flex; align-items: center; gap: 4px; font-size: 12px; color: #555;
+    }
+    .series-item .lambda-wrap input {
+      width: 72px; padding: 4px 6px; font-size: 12px; margin-left: 0;
+    }
+    label { font-size: 14px; color: #444; }
+    input[type="number"] { width: 100px; padding: 8px; margin-left: 6px; border: 1px solid #ccc; border-radius: 6px; }
+    button.primary {
+      padding: 10px 20px;
+      border: none;
+      background: #2d6cdf;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.primary:hover { background: #2356b8; }
+    #loadHint { font-size: 12px; color: #888; margin-top: 8px; }
+    #tableWrap { overflow-x: auto; margin: 20px 0; }
+    table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+    th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: right; }
+    th { background: #f8f9fa; font-weight: 600; color: #333; text-align: left; }
+    th.num, td.num { text-align: right; }
+    .sticky { position: sticky; left: 0; background: #fff; z-index: 1; }
+    th.sticky { background: #f8f9fa; z-index: 2; }
+    .chart-wrap { margin-top: 24px; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .chart-title { font-size: 14px; font-weight: 600; color: #333; }
+    .chart-controls { display: flex; gap: 6px; align-items: center; }
+    .chart-controls button {
+      padding: 4px 10px; border: 1px solid #ccc; background: #f8f9fa; color: #444;
+      border-radius: 6px; cursor: pointer; font-size: 12px;
+    }
+    .chart-controls button:hover { background: #e8e8e8; }
+    .zoom-hint { font-size: 11px; color: #999; margin-left: 4px; }
+    .chart-container { position: relative; display: block; }
+    canvas { display: block; width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; cursor: crosshair; }
+    .chart-tooltip {
+      position: absolute; display: none; background: rgba(30,30,30,0.95); color: #fff; padding: 10px 14px;
+      border-radius: 6px; font-size: 12px; pointer-events: none; z-index: 10; max-width: 280px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .legend { margin-top: 8px; font-size: 12px; color: #555; }
+    .legend span { margin-right: 16px; }
+    /* Fullscreen overlay */
+    .chart-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .chart-overlay.active { display: flex; }
+    .chart-overlay-inner {
+      background: #fff; border-radius: 12px; padding: 20px;
+      width: 96vw; max-height: 94vh; overflow: auto; position: relative;
+    }
+    .chart-overlay-inner canvas { width: 100%; }
+    .chart-overlay-close {
+      position: absolute; top: 12px; right: 14px; font-size: 22px;
+      cursor: pointer; color: #555; line-height: 1; background: none; border: none;
+    }
+    .chart-overlay-close:hover { color: #000; }
+    #status { margin-top: 12px; color: #666; font-size: 14px; }
+    .error { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hodrick–Prescott Filter</h1>
+    <p class="sub"><strong>Normal</strong> = raw series (no filter). <strong>Log</strong> = HP filter mode (trend + cycle). GDP Quarterly, GDP Annual, WPI, IIP, and Nifty 50 use original values in both modes. Select multiple series for combined view.</p>
+
+    <div class="controls">
+      <div class="series-controls" id="seriesControls"></div>
+      <span id="lambdaWrap"></span>
+      <button class="primary" id="btnLoad">Load All Data</button>
+      <button class="primary" id="repoToggleBtn" style="background:#6c757d;">Repo rate</button>
+    </div>
+    <p id="loadHint">Loads GDP Quarterly, GDP Annual, Inflation (CPI/WPI), Nifty 50, IIP, and Repo Rate from data files.</p>
+    <p id="status"></p>
+    <div id="corrWrap"></div>
+    <div id="corrVizWrap" style="margin-top:12px;">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:13px;color:#333;">Correlation Heatmap</strong>
+        <div style="display:flex;border:1px solid #ccc;border-radius:6px;overflow:hidden;">
+          <button id="corrModeOrigBtn" style="padding:4px 10px;border:none;background:#2d6cdf;color:#fff;cursor:pointer;font-size:12px;">Original</button>
+          <button id="corrModeHpBtn" style="padding:4px 10px;border:none;background:#e8e8e8;color:#555;cursor:pointer;font-size:12px;">HP Trend</button>
+        </div>
+      </div>
+
+      <div id="corrHeatmapWrap" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="tableWrap"></div>
+    <div class="chart-wrap">
+      <div class="chart-header">
+        <div class="chart-title">Series &amp; HP trend</div>
+        <div class="chart-controls">
+          <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
+          <button onclick="expandChart('chartSeries')">⛶ Expand</button>
+          <button onclick="resetZoom('chartSeries')">↺ Reset</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartSeries" width="1300" height="420"></canvas>
+        <div id="tooltipSeries" class="chart-tooltip"></div>
+      </div>
+      <div class="legend" id="legendSeries"></div>
+    </div>
+    <div class="chart-wrap" id="repoChartWrap" style="display:none;">
+      <div class="chart-header">
+        <div class="chart-title">Repo Rate (4.1 Policy Repo Rate)</div>
+        <div class="chart-controls">
+          <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
+          <button onclick="expandChart('chartRepo')">⛶ Expand</button>
+          <button onclick="resetZoom('chartRepo')">↺ Reset</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartRepo" width="1300" height="340"></canvas>
+        <div id="tooltipRepo" class="chart-tooltip"></div>
+      </div>
+      <div class="legend" id="legendRepo"></div>
+    </div>
+    <div class="chart-wrap" id="chartCycleWrap">
+      <div class="chart-header">
+        <div class="chart-title">Cycle (deviation from trend)</div>
+        <div class="chart-controls">
+          <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
+          <button onclick="expandChart('chartCycle')">⛶ Expand</button>
+          <button onclick="resetZoom('chartCycle')">↺ Reset</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartCycle" width="1300" height="340"></canvas>
+        <div id="tooltipCycle" class="chart-tooltip"></div>
+      </div>
+      <div class="legend" id="legendCycle"></div>
+    </div>
+  </div>
+
+  <!-- Fullscreen overlay -->
+  <div class="chart-overlay" id="chartOverlay">
+    <div class="chart-overlay-inner">
+      <button class="chart-overlay-close" onclick="closeOverlay()">✕</button>
+      <div class="chart-header" style="margin-bottom:12px">
+        <div class="chart-title" id="overlayTitle"></div>
+        <div class="chart-controls">
+          <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
+          <button onclick="resetZoom('chartOverlayCanvas')">↺ Reset</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartOverlayCanvas" width="1800" height="700"></canvas>
+        <div id="tooltipOverlay" class="chart-tooltip"></div>
+      </div>
+      <div class="legend" id="legendOverlay" style="margin-top:8px;font-size:12px;color:#555"></div>
+    </div>
+  </div>
+
+  <script>
+    const SERIES_CONFIG = [
+      { id: 'gdpQ', name: 'GDP Quarterly', file: '../../2-GDP Quarterly.csv', rawCol: 10, logCol: 11, headerRow: 6, dataStartRow: 6, periodCols: [0, 1], color: '#2d6cdf' },
+      { id: 'gdpA', name: 'GDP Annual', file: '../../GDP-annual 1951.csv', rawCol: 18, logCol: 19, headerRow: 8, dataStartRow: 9, periodCol: 1, color: '#8e44ad' },
+      { id: 'cpi', name: 'CPI', file: '../../35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#e74c3c', invertColors: true },
+      { id: 'wpi', name: 'WPI', file: '../../35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#d35400', invertColors: true },
+      { id: 'nifty', name: 'Nifty 50', file: '../../Nifty 50 Historical Data (1).csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#27ae60' },
+      { id: 'iip', name: 'IIP', file: '../data/iip filtered.csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#16a085', isIIP: true }
+    ];
+
+    const COLORS = ['#2d6cdf', '#8e44ad', '#e74c3c', '#d35400', '#16a085', '#27ae60', '#f39c12'];
+
+    // Per-dataset color map for multi-dataset mode
+    // { above, below, trend, dash } — dash is [on, off, ...] for setLineDash
+    const MULTI_COLORS = {
+      gdpQ:  { above: '#00bcd4', below: '#1a237e', trend: '#2d6cdf', dash: [6, 3] },
+      gdpA:  { above: '#e91e63', below: '#4a148c', trend: '#8e44ad', dash: [10, 4] },
+      cpi:   { above: '#e91e63', below: '#880e4f', trend: '#e74c3c', dash: [6, 3] },
+      wpi:   { above: '#00bfa5', below: '#1a237e', trend: '#1565c0', dash: [10, 3, 2, 3] },
+      iip:   { above: '#f57f17', below: '#006064', trend: '#16a085', dash: [8, 4] },
+      nifty: { above: '#80cbc4', below: '#004d40', trend: '#27ae60', dash: [6, 3] },
+    };
+    const RAW_HP_IDS = new Set(['gdpQ', 'gdpA', 'cpi', 'wpi', 'iip', 'nifty', 'repo']);
+
+    // Returns { above, below, trend, dash } colors for a series.
+    // multiMode = true when more than one dataset is selected.
+    function seriesColors(s, multiMode) {
+      if (!multiMode) {
+        // Single dataset: classic green / red / yellow scheme
+        const above = s.invertColors ? '#c0392b' : '#27ae60';
+        const below = s.invertColors ? '#27ae60' : '#c0392b';
+        return { above, below, trend: '#f1c40f', dash: [6, 3] };
+      }
+      // Multi-dataset: use per-dataset distinct colors
+      const map = MULTI_COLORS[s.id];
+      if (map) return map;
+      // Fallback for any unlisted id
+      return { above: '#00bcd4', below: '#1a237e', trend: s.color, dash: [6, 3] };
+    }
+
+    let seriesData = {};
+    let hpResults = {};
+    let seriesModes = {};
+    let seriesSelected = { gdpQ: true };
+    let seriesLambda = {}; // per-dataset λ, defaults to 1600
+    let showRepoRate = false;
+
+    function getSeriesNameById(id) {
+      if (id === 'repo') return 'Repo Rate';
+      const cfg = SERIES_CONFIG.find(s => s.id === id);
+      return cfg ? cfg.name : id;
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      const lines = text.split(/\r?\n/);
+      for (const line of lines) {
+        const row = [];
+        let inQuotes = false;
+        let cell = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { inQuotes = !inQuotes; continue; }
+          if (!inQuotes && c === ',') { row.push(cell); cell = ''; continue; }
+          if (inQuotes && (c === '\r' || c === '\n')) continue;
+          cell += c;
+        }
+        row.push(cell);
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function parseNum(s) {
+      if (s == null || s === '') return NaN;
+      s = String(s).trim().replace(/^\+/, '').replace(/,/g, '');
+      return isNaN(parseFloat(s)) ? NaN : parseFloat(s);
+    }
+
+    function findCol(rows, headerRow, name) {
+      if (headerRow >= rows.length) return -1;
+      const h = rows[headerRow];
+      for (let i = 0; i < h.length; i++) {
+        if (String(h[i]).trim().indexOf(name) >= 0) return i;
+      }
+      return -1;
+    }
+
+    function parseGDPQuarterly(rows, cfg) {
+      const out = [];
+      let lastYear = '';
+      for (let i = cfg.dataStartRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length <= cfg.rawCol) continue;
+        const yearPart = (row[cfg.periodCols[0]] || '').trim();
+        const quarterPart = (row[cfg.periodCols[1]] || '').trim();
+        if (yearPart) lastYear = yearPart;
+        if (!quarterPart) continue;
+        const raw = parseNum(row[cfg.rawCol]);
+        if (Number.isNaN(raw) || !isFinite(raw)) continue;
+        const log = (cfg.logCol >= 0 && row.length > cfg.logCol) ? parseNum(row[cfg.logCol]) : NaN;
+        const period = (lastYear ? lastYear + ' ' : '') + quarterPart;
+        out.push({ period: period || 't' + (out.length + 1), raw, log });
+      }
+      return out;
+    }
+
+    function parseGDPAnnual(rows, cfg) {
+      const out = [];
+      const hasLogCol = cfg.logCol >= 0;
+      for (let i = cfg.dataStartRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length <= Math.max(cfg.rawCol, hasLogCol ? cfg.logCol : 0)) continue;
+        const period = (row[cfg.periodCol] || '').trim();
+        if (!period) continue;
+        const raw = parseNum(row[cfg.rawCol]);
+        if (Number.isNaN(raw) || !isFinite(raw)) continue;
+        let log = hasLogCol ? parseNum(row[cfg.logCol]) : (raw > 0 ? Math.log(raw) : NaN);
+        if (Number.isNaN(log) && raw > 0) log = Math.log(raw);
+        out.push({ period, raw, log });
+      }
+      return out;
+    }
+
+    function parseInflation(rows, cfg, rawName, logName) {
+      const rawCol = findCol(rows, cfg.headerRow, rawName);
+      const logCol = findCol(rows, cfg.headerRow, logName);
+      if (rawCol < 0 || logCol < 0) return [];
+      const out = [];
+      for (let i = cfg.dataStartRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length <= Math.max(rawCol, logCol)) continue;
+        const raw = parseNum(row[rawCol]);
+        if (Number.isNaN(raw) || !isFinite(raw)) continue;
+        const log = parseNum(row[logCol]);
+        const period = (row[cfg.periodCol] || '').trim() || 't' + (out.length + 1);
+        out.push({ period, raw, log });
+      }
+      return out;
+    }
+
+    function parseRepoRate(rows) {
+      const periodCol = findCol(rows, 3, 'Date');
+      const rawCol = findCol(rows, 3, '4.1   Policy Repo Rate');
+      if (periodCol < 0 || rawCol < 0) return [];
+      const out = [];
+      for (let i = 6; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length <= Math.max(periodCol, rawCol)) continue;
+        const period = (row[periodCol] || '').trim();
+        if (!period) continue;
+        const raw = parseNum(row[rawCol]);
+        if (Number.isNaN(raw) || !isFinite(raw)) continue;
+        const log = raw > 0 ? Math.log(raw) : NaN;
+        out.push({ period, raw, log });
+      }
+      out.reverse();
+      return out;
+    }
+
+    function parseNifty(rows, cfg) {
+      const out = [];
+      for (let i = cfg.dataStartRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length <= Math.max(cfg.rawCol, cfg.logCol)) continue;
+        const raw = parseNum(row[cfg.rawCol]);
+        if (Number.isNaN(raw) || !isFinite(raw)) continue;
+        const log = parseNum(row[cfg.logCol]);
+        const period = (row[cfg.periodCol] || '').trim() || 't' + (out.length + 1);
+        out.push({ period, raw, log });
+      }
+      out.reverse();
+      return out;
+    }
+
+    function parseIIP(rows, cfg) {
+      const out = [];
+      for (let i = cfg.dataStartRow; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 2) continue;
+        const period = (row[cfg.periodCol] || '').trim();
+        if (!period) continue;
+        const raw = parseNum(row[cfg.rawCol]);
+        if (Number.isNaN(raw)) continue;
+        const logRaw = parseNum(row[cfg.logCol]);
+        const log = !Number.isNaN(logRaw) ? logRaw : (raw > 0 ? Math.log(raw) : NaN);
+        out.push({ period, raw, log });
+      }
+      return out;
+    }
+
+    function zeros(n, m) {
+      return Array.from({ length: n }, () => Array(m || n).fill(0));
+    }
+
+    function invertMatrix(A) {
+      const n = A.length;
+      const I = zeros(n, n);
+      for (let i = 0; i < n; i++) I[i][i] = 1;
+      const M = A.map(r => r.slice());
+      for (let i = 0; i < n; i++) {
+        const d = M[i][i];
+        if (Math.abs(d) < 1e-12) throw new Error('Singular matrix');
+        for (let j = 0; j < n; j++) { M[i][j] /= d; I[i][j] /= d; }
+        for (let k = 0; k < n; k++) {
+          if (k === i) continue;
+          const f = M[k][i];
+          for (let j = 0; j < n; j++) { M[k][j] -= f * M[i][j]; I[k][j] -= f * I[i][j]; }
+        }
+      }
+      return I;
+    }
+
+    function matVec(A, v) {
+      return A.map(r => r.reduce((s, val, i) => s + val * v[i], 0));
+    }
+
+    function hpFilter(y, lambda) {
+      const T = y.length;
+      const I = zeros(T, T);
+      for (let i = 0; i < T; i++) I[i][i] = 1;
+      const D = zeros(T - 2, T);
+      for (let t = 0; t < T - 2; t++) {
+        D[t][t] = 1; D[t][t + 1] = -2; D[t][t + 2] = 1;
+      }
+      const Dt = zeros(T, T - 2);
+      for (let i = 0; i < T; i++) for (let j = 0; j < T - 2; j++) Dt[i][j] = D[j][i];
+      const DtD = zeros(T, T);
+      for (let i = 0; i < T; i++)
+        for (let j = 0; j < T; j++) {
+          let s = 0;
+          for (let k = 0; k < T - 2; k++) s += Dt[i][k] * D[k][j];
+          DtD[i][j] = s;
+        }
+      const A = zeros(T, T);
+      for (let i = 0; i < T; i++)
+        for (let j = 0; j < T; j++) A[i][j] = I[i][j] + lambda * DtD[i][j];
+      const trend = matVec(invertMatrix(A), y);
+      const cycle = y.map((v, i) => v - trend[i]);
+      return { trend, cycle };
+    }
+
+    function getSeriesLambda(id) {
+      return Math.max(1, parseFloat(seriesLambda[id]) || 1600);
+    }
+
+    function computeHPForSeries(id) {
+      const data = seriesData[id];
+      if (!data || data.length === 0) return;
+      const lambda = getSeriesLambda(id);
+      // Selected datasets use original values for HP (includes negatives).
+      const validData = RAW_HP_IDS.has(id)
+        ? data.filter(r => !Number.isNaN(r.raw) && isFinite(r.raw))
+        : data.filter(r => !Number.isNaN(r.log) && isFinite(r.log));
+      if (validData.length === 0) return;
+      const values = RAW_HP_IDS.has(id)
+        ? validData.map(r => r.raw)
+        : validData.map(r => r.log);
+      hpResults[id] = { ...hpFilter(values, lambda), validData };
+    }
+
+    const matchTimeFrames = true; // always on when multiple datasets selected
+
+    // Parse any period string into a comparable numeric timestamp
+    function parsePeriodToDate(p) {
+      if (!p) return null;
+      p = p.trim();
+      // dd/mm/yy or dd/mm/yyyy (CPI/WPI: "30/11/25 0:00", Nifty: "01/02/26")
+      let m = p.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+      if (m) {
+        let yr = parseInt(m[3]);
+        if (yr < 100) yr += yr >= 50 ? 1900 : 2000;
+        return new Date(yr, parseInt(m[2]) - 1, parseInt(m[1])).getTime();
+      }
+      // YYYY-YY Q# (GDP Quarterly: "2013-14 Q1")
+      m = p.match(/^(\d{4})-\d{2}\s+Q(\d)/);
+      if (m) {
+        const yr = parseInt(m[1]);
+        const q = parseInt(m[2]);
+        return new Date(yr, (q - 1) * 3, 1).getTime();
+      }
+      // YYYY-YY (GDP Annual: "2025-26")
+      m = p.match(/^(\d{4})-\d{2}/);
+      if (m) return new Date(parseInt(m[1]), 3, 1).getTime(); // April start (Indian FY)
+      // YYYYQ# (IIP: "2016Q1")
+      m = p.match(/^(\d{4})Q(\d)$/);
+      if (m) {
+        const yr = parseInt(m[1]);
+        const q = parseInt(m[2]);
+        return new Date(yr, (q - 1) * 3, 1).getTime();
+      }
+      // Plain year
+      m = p.match(/^(\d{4})$/);
+      if (m) return new Date(parseInt(m[1]), 0, 1).getTime();
+      return null;
+    }
+
+    // Clip a chart series object to only rows within [startTs, endTs]
+    function clipSeries(s, startTs, endTs) {
+      const keep = s.period.map((p, i) => {
+        const ts = parsePeriodToDate(p);
+        return ts !== null && ts >= startTs && ts <= endTs;
+      });
+      const filter = arr => arr ? arr.filter((_, i) => keep[i]) : arr;
+      return {
+        ...s,
+        period:    filter(s.period),
+        series:    filter(s.series),
+        trend:     s.trend    ? filter(s.trend)     : null,
+        cycle:     s.cycle    ? filter(s.cycle)     : null,
+        rawValues: s.rawValues ? filter(s.rawValues) : undefined,
+      };
+    }
+
+    function getSelectedSeries() {
+      return SERIES_CONFIG.filter(c => seriesSelected[c.id]);
+    }
+
+    function getCorrelationIds() {
+      const ids = getSelectedSeries().map(s => s.id);
+      if (showRepoRate && Array.isArray(seriesData.repo) && seriesData.repo.length > 0 && !ids.includes('repo')) {
+        ids.push('repo');
+      }
+      return ids;
+    }
+
+    function getSeriesForChart(id) {
+      const data = seriesData[id];
+      const cfg = SERIES_CONFIG.find(c => c.id === id);
+      const mode = seriesModes[id] || 'normal';
+      if (!data || !cfg) return null;
+      if (mode === 'normal') {
+        const validData = data.filter(r => !Number.isNaN(r.raw) && isFinite(r.raw));
+        return { id, name: cfg.name, series: validData.map(r => r.raw), trend: null, cycle: null, period: validData.map(r => r.period), color: cfg.color };
+      } else {
+        const hp = hpResults[id];
+        if (!hp) return null;
+        // Use the same valid subset that was passed to hpFilter so lengths match
+        const validData = hp.validData || (RAW_HP_IDS.has(id)
+          ? data.filter(r => !Number.isNaN(r.raw) && isFinite(r.raw))
+          : data.filter(r => !Number.isNaN(r.log) && isFinite(r.log)));
+        const seriesVals = RAW_HP_IDS.has(id)
+          ? validData.map(r => r.raw)
+          : validData.map(r => r.log);
+        return { id, name: cfg.name, series: seriesVals, trend: hp.trend, cycle: hp.cycle, period: validData.map(r => r.period), color: cfg.color, invertColors: !!cfg.invertColors, rawValues: validData.map(r => r.raw) };
+      }
+    }
+
+    function getRepoSeriesForChart() {
+      const data = seriesData.repo || [];
+      const validData = data.filter(r => !Number.isNaN(r.raw) && isFinite(r.raw));
+      if (!validData.length) return null;
+      return {
+        id: 'repo',
+        name: 'Repo Rate',
+        series: validData.map(r => r.raw),
+        trend: null,
+        cycle: null,
+        period: validData.map(r => r.period),
+        color: '#6c757d'
+      };
+    }
+
+    function normalizeToIndex(arr) {
+      if (arr.length === 0) return arr;
+      const base = arr[0];
+      if (base === 0) return arr.map(() => 1);
+      return arr.map(v => (v / base) * 100);
+    }
+
+    function renderTable() {
+      const selected = getSelectedSeries();
+      const tableWrap = document.getElementById('tableWrap');
+      if (selected.length === 0) {
+        tableWrap.innerHTML = '';
+        return;
+      }
+
+      const selectedSeries = selected.map(cfg => {
+        const mode = seriesModes[cfg.id] || 'normal';
+        const chartData = getSeriesForChart(cfg.id);
+        return chartData ? { cfg, mode, chartData } : null;
+      }).filter(Boolean);
+
+      if (selectedSeries.length === 0) {
+        tableWrap.innerHTML = '';
+        return;
+      }
+
+      // Compute overlap window for table if match is on and multiple series
+      let tblStartTs = -Infinity, tblEndTs = Infinity;
+      if (matchTimeFrames && selectedSeries.length > 1) {
+        for (const s of selectedSeries) {
+          const dates = s.chartData.period.map(parsePeriodToDate).filter(t => t !== null);
+          if (dates.length) {
+            tblStartTs = Math.max(tblStartTs, Math.min(...dates));
+            tblEndTs   = Math.min(tblEndTs,   Math.max(...dates));
+          }
+        }
+      }
+      const inRange = (p) => {
+        if (!matchTimeFrames || selectedSeries.length <= 1) return true;
+        const ts = parsePeriodToDate(p);
+        return ts !== null && ts >= tblStartTs && ts <= tblEndTs;
+      };
+
+      const rowsByPeriod = new Map();
+      for (const s of selectedSeries) {
+        for (let i = 0; i < s.chartData.period.length; i++) {
+          const period = s.chartData.period[i] || '—';
+          if (!inRange(period)) continue;
+          if (!rowsByPeriod.has(period)) rowsByPeriod.set(period, { period, values: {} });
+          rowsByPeriod.get(period).values[s.cfg.id] = {
+            series: s.chartData.series[i],
+            trend: s.chartData.trend ? s.chartData.trend[i] : null,
+            cycle: s.chartData.cycle ? s.chartData.cycle[i] : null
+          };
+        }
+      }
+
+      let html = '<p style="color:#888;margin-bottom:8px">Comparison table for selected datasets (side-by-side).</p>';
+      html += '<table>';
+      html += '<tr><th class="sticky">Period</th>';
+      for (const s of selectedSeries) {
+        const colSpan = s.mode === 'log' ? 3 : 1;
+        html += `<th class="num" colspan="${colSpan}">${s.cfg.name} (${s.mode === 'log' ? 'Log' : 'Normal'})</th>`;
+      }
+      html += '</tr>';
+
+      html += '<tr><th class="sticky"></th>';
+      for (const s of selectedSeries) {
+        if (s.mode === 'log') {
+          html += '<th class="num">Series</th><th class="num">Trend</th><th class="num">Cycle</th>';
+        } else {
+          html += '<th class="num">Value</th>';
+        }
+      }
+      html += '</tr>';
+
+      for (const row of rowsByPeriod.values()) {
+        html += `<tr><td class="sticky">${row.period}</td>`;
+        for (const s of selectedSeries) {
+          const v = row.values[s.cfg.id];
+          if (!v) {
+            html += s.mode === 'log'
+              ? '<td class="num">—</td><td class="num">—</td><td class="num">—</td>'
+              : '<td class="num">—</td>';
+            continue;
+          }
+          if (s.mode === 'log') {
+            html += `<td class="num">${formatNum(v.series)}</td><td class="num">${formatNum(v.trend)}</td><td class="num">${formatNum(v.cycle)}</td>`;
+          } else {
+            html += `<td class="num">${formatNum(v.series)}</td>`;
+          }
+        }
+        html += '</tr>';
+      }
+      html += '</table>';
+      tableWrap.innerHTML = html;
+    }
+
+    function formatNum(x) {
+      if (x == null || Number.isNaN(x)) return '—';
+      if (Math.abs(x) >= 1000 || (Math.abs(x) < 0.01 && x !== 0)) return x.toExponential(4);
+      return x.toFixed(4);
+    }
+
+    // Pearson correlation in [-1, 1]
+    function pearsonCorr(a, b) {
+      const n = Math.min(a.length, b.length);
+      if (n < 2) return NaN;
+      let sa = 0, sb = 0;
+      for (let i = 0; i < n; i++) { sa += a[i]; sb += b[i]; }
+      const ma = sa / n, mb = sb / n;
+      let num = 0, va = 0, vb = 0;
+      for (let i = 0; i < n; i++) {
+        const da = a[i] - ma;
+        const db = b[i] - mb;
+        num += da * db;
+        va += da * da;
+        vb += db * db;
+      }
+      const den = Math.sqrt(va * vb);
+      if (!isFinite(den) || den === 0) return NaN;
+      return num / den;
+    }
+
+    // Clamp Pearson r to [-1, 1] to guard against floating-point drift.
+    // +1 = perfectly move together, 0 = no relationship, -1 = perfectly inverse.
+    function corr01(r) {
+      if (Number.isNaN(r) || !isFinite(r)) return NaN;
+      return Math.max(-1, Math.min(1, r));
+    }
+
+    // Convert any timestamp to a quarter-bucket key "YYYY-QN" for cross-frequency alignment.
+    // Monthly, quarterly, and annual timestamps all map to the quarter they fall in.
+    function tsToBucket(ts) {
+      const d = new Date(ts);
+      const yr = d.getFullYear();
+      const q = Math.floor(d.getMonth() / 3) + 1;
+      return `${yr}-Q${q}`;
+    }
+
+    // Build a Map<bucket, value> from a dataset's raw values.
+    function buildOriginalValueMap(id) {
+      const m = new Map();
+      const data = seriesData[id] || [];
+      for (const row of data) {
+        const ts = parsePeriodToDate(row.period);
+        if (ts === null) continue;
+        const v = row.raw;
+        if (v == null || Number.isNaN(v) || !isFinite(v)) continue;
+        const bk = tsToBucket(ts);
+        if (!m.has(bk)) m.set(bk, v); // keep first value if multiple fall in same quarter
+      }
+      return m;
+    }
+
+    // Build a Map<bucket, trend-value> from HP results.
+    function buildHPTrendMap(id) {
+      if (!hpResults[id]) computeHPForSeries(id);
+      const hp = hpResults[id];
+      const m = new Map();
+      if (!hp || !hp.validData || !hp.trend) return m;
+      for (let i = 0; i < hp.validData.length; i++) {
+        const ts = parsePeriodToDate(hp.validData[i].period);
+        if (ts === null) continue;
+        const v = hp.trend[i];
+        if (v == null || Number.isNaN(v) || !isFinite(v)) continue;
+        const bk = tsToBucket(ts);
+        if (!m.has(bk)) m.set(bk, v);
+      }
+      return m;
+    }
+
+    // Return sorted bucket keys common across ALL provided maps (global intersection).
+    function commonBucketsAcross(ids, mapById) {
+      if (!ids.length) return [];
+      let common = new Set(mapById.get(ids[0]).keys());
+      for (let i = 1; i < ids.length; i++) {
+        const curr = mapById.get(ids[i]);
+        common = new Set([...common].filter(bk => curr.has(bk)));
+        if (!common.size) break;
+      }
+      return Array.from(common).sort();
+    }
+
+    // Return sorted bucket keys common to exactly two maps (pairwise intersection).
+    function commonBucketsPair(mA, mB) {
+      const common = [];
+      for (const bk of mA.keys()) if (mB.has(bk)) common.push(bk);
+      return common.sort();
+    }
+
+    // Compute pairwise correlation rows using per-pair bucket overlap.
+    function computeCorrelationRows(ids, mapById) {
+      const rows = [];
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          const ma = mapById.get(ids[i]);
+          const mb = mapById.get(ids[j]);
+          const pairBuckets = commonBucketsPair(ma, mb);
+          const a = pairBuckets.map(bk => ma.get(bk));
+          const b = pairBuckets.map(bk => mb.get(bk));
+          const r = pearsonCorr(a, b);
+          rows.push({ idA: ids[i], idB: ids[j], n: pairBuckets.length, corr: corr01(r) });
+        }
+      }
+      return rows;
+    }
+
+    function renderCorrelation() {
+      const wrap = document.getElementById('corrWrap');
+      if (!wrap) return;
+      const ids = getCorrelationIds();
+      if (ids.length < 2) {
+        wrap.innerHTML = '';
+        return;
+      }
+      const nameOf = (id) => getSeriesNameById(id);
+
+      const origMapById = new Map(ids.map(id => [id, buildOriginalValueMap(id)]));
+      const hpMapById = new Map(ids.map(id => [id, buildHPTrendMap(id)]));
+
+      const originalRows = computeCorrelationRows(ids, origMapById);
+      const hpRows = computeCorrelationRows(ids, hpMapById);
+
+      function rowsToTable(title, rows) {
+        let html = `<p style="color:#444;margin:10px 0 6px 0"><strong>${title}</strong> <span style="color:#888;font-size:12px">(quarter-bucketed alignment, pairwise overlap)</span></p>`;
+        html += '<table>';
+        html += '<tr><th class="sticky">Dataset Pair</th><th class="num">Aligned Points</th><th class="num">Correlation (−1 to +1)</th></tr>';
+        for (const r of rows) {
+          const pair = `${nameOf(r.idA)} vs ${nameOf(r.idB)}`;
+          const corrTxt = (r.n < 2 || Number.isNaN(r.corr)) ? '—' : r.corr.toFixed(4);
+          html += `<tr><td class="sticky">${pair}</td><td class="num">${r.n}</td><td class="num">${corrTxt}</td></tr>`;
+        }
+        html += '</table>';
+        return html;
+      }
+
+      let html = '<div style="margin:12px 0 6px 0;padding:10px 12px;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px">';
+      html += '<div style="font-size:13px;color:#333"><strong>Correlation Summary</strong></div>';
+      html += '<div style="font-size:12px;color:#666;margin-top:4px">Scale: +1 = perfectly moves together &nbsp;|&nbsp; 0 = no relationship &nbsp;|&nbsp; −1 = perfectly inverse movement.</div>';
+      html += '</div>';
+      html += rowsToTable('Original Values Correlation', originalRows);
+      html += rowsToTable('HP Trend Correlation', hpRows);
+      wrap.innerHTML = html;
+    }
+
+    let corrVizMode = 'orig'; // 'orig' | 'hp'
+
+    // Color for correlation in [-1, 1]:
+    // -1 → red, 0 → light grey (neutral), +1 → green
+    function heatColor01(v) {
+      if (v == null || Number.isNaN(v)) return '#f2f2f2';
+      const clamped = Math.max(-1, Math.min(1, v));
+      if (clamped >= 0) {
+        // 0 → hsl(0,0%,92%) neutral grey  →  +1 → hsl(120,65%,45%) green
+        const t = clamped;
+        const hue = 120;
+        const sat = Math.round(65 * t);
+        const lig = Math.round(92 - 47 * t);
+        return `hsl(${hue},${sat}%,${lig}%)`;
+      } else {
+        // 0 → hsl(0,0%,92%) neutral grey  →  -1 → hsl(0,65%,45%) red
+        const t = -clamped;
+        const hue = 0;
+        const sat = Math.round(65 * t);
+        const lig = Math.round(92 - 47 * t);
+        return `hsl(${hue},${sat}%,${lig}%)`;
+      }
+    }
+
+    function renderCorrelationHeatmap(ids, mapById) {
+      const wrap = document.getElementById('corrHeatmapWrap');
+      if (!wrap) return;
+      if (ids.length < 2) {
+        wrap.innerHTML = '';
+        return;
+      }
+      const nameOf = (id) => getSeriesNameById(id);
+      const matrix = [];
+      const nMap = []; // aligned point counts
+      for (let i = 0; i < ids.length; i++) {
+        matrix[i] = [];
+        nMap[i] = [];
+        for (let j = 0; j < ids.length; j++) {
+          if (i === j) { matrix[i][j] = 1; nMap[i][j] = null; continue; }
+          const mA = mapById.get(ids[i]);
+          const mB = mapById.get(ids[j]);
+          const pairBuckets = commonBucketsPair(mA, mB);
+          const a = pairBuckets.map(bk => mA.get(bk));
+          const b = pairBuckets.map(bk => mB.get(bk));
+          matrix[i][j] = pairBuckets.length >= 2 ? corr01(pearsonCorr(a, b)) : NaN;
+          nMap[i][j] = pairBuckets.length;
+        }
+      }
+
+      let html = '<p style="color:#444;margin:10px 0 6px 0"><strong>Pairwise Heatmap (−1 to +1)</strong> <span style="color:#888;font-size:12px">— green = co-movement, red = inverse, grey = no relationship. Hover for aligned point count.</span></p>';
+      html += '<table><tr><th class="sticky"></th>';
+      for (const id of ids) html += `<th class="num">${nameOf(id)}</th>`;
+      html += '</tr>';
+      for (let i = 0; i < ids.length; i++) {
+        html += `<tr><td class="sticky">${nameOf(ids[i])}</td>`;
+        for (let j = 0; j < ids.length; j++) {
+          const v = matrix[i][j];
+          const n = nMap[i][j];
+          const isDiag = (i === j);
+          const txt = isDiag ? '—' : (v == null || Number.isNaN(v)) ? '—' : v.toFixed(3);
+          const bg = isDiag ? '#e8e8e8' : heatColor01(v);
+          const color = isDiag ? '#999' : '#111';
+          const title = (n != null) ? ` title="${n} aligned quarters"` : '';
+          html += `<td class="num" style="background:${bg};color:${color}"${title}>${txt}</td>`;
+        }
+        html += '</tr>';
+      }
+      html += '</table>';
+      wrap.innerHTML = html;
+    }
+
+    function renderCorrelationChart() {
+      const ids = getCorrelationIds();
+      if (ids.length < 2) {
+        const heat = document.getElementById('corrHeatmapWrap');
+        if (heat) heat.innerHTML = '';
+        return;
+      }
+
+      const mapById = new Map(ids.map(id => [
+        id,
+        corrVizMode === 'orig' ? buildOriginalValueMap(id) : buildHPTrendMap(id)
+      ]));
+
+      renderCorrelationHeatmap(ids, mapById);
+    }
+
+    let chartDataCache = {};
+    const zoomState = {};
+
+    function getZoom(id) {
+      if (!zoomState[id]) zoomState[id] = { start: 0, end: 1 };
+      return zoomState[id];
+    }
+
+    // Keep plotting in original units for both single and multi-series views.
+    function isZScorePair(valid) {
+      return false;
+    }
+
+    // Z-score normalize an array (returns new array, NaN preserved)
+    function zScore(arr) {
+      const vals = arr.filter(v => v != null && !Number.isNaN(v));
+      if (vals.length === 0) return arr;
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length) || 1;
+      return arr.map(v => (v == null || Number.isNaN(v)) ? v : (v - mean) / std);
+    }
+
+    // Draw a smooth bezier curve through points [{x,y}], skipping nulls
+    function drawSmoothedLine(ctx, points) {
+      const pts = points.filter(p => p && p.y != null && !Number.isNaN(p.y));
+      if (pts.length === 0) return;
+      if (pts.length === 1) {
+        // Single isolated point — draw a small dot
+        ctx.beginPath();
+        ctx.arc(pts[0].x, pts[0].y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cpx = (prev.x + curr.x) / 2;
+        ctx.bezierCurveTo(cpx, prev.y, cpx, curr.y, curr.x, curr.y);
+      }
+      ctx.stroke();
+    }
+
+    function drawStraightLine(ctx, points) {
+      const pts = points.filter(p => p && p.y != null && !Number.isNaN(p.y));
+      if (pts.length === 0) return;
+      if (pts.length === 1) {
+        ctx.beginPath();
+        ctx.arc(pts[0].x, pts[0].y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.stroke();
+    }
+
+    function drawMultiChart(id, seriesList, isCycleChart) {
+      const canvas = document.getElementById(id);
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      const valid = seriesList.filter(s => s && s.series && s.series.length > 0);
+
+      const useZScore = !isCycleChart && isZScorePair(valid);
+      const multiDataset = valid.length > 1;
+      const pad = { top: 30, right: 30, bottom: 70, left: 80 };
+      const plotW = w - pad.left - pad.right, plotH = h - pad.top - pad.bottom;
+
+      ctx.fillStyle = '#fafafa';
+      ctx.fillRect(0, 0, w, h);
+
+      if (valid.length === 0) return;
+
+      if (multiDataset) {
+        // Multi-series comparison uses timestamp X-axis for accurate cross-frequency alignment.
+        const tsSet = new Set();
+        const seriesTsMap = new Map(); // Map<series, Map<ts, {seriesVal, trendVal, cycleVal, period}>>
+
+        for (const s of valid) {
+          const m = new Map();
+          s.period.forEach((p, i) => {
+            const ts = parsePeriodToDate(p);
+            if (ts === null) return;
+            tsSet.add(ts);
+            m.set(ts, {
+              seriesVal: s.series[i],
+              trendVal: s.trend ? s.trend[i] : null,
+              cycleVal: s.cycle ? s.cycle[i] : null,
+              period: p
+            });
+          });
+          seriesTsMap.set(s, m);
+        }
+
+        const timeline = Array.from(tsSet).sort((a, b) => a - b);
+        if (timeline.length === 0) return;
+
+        const zoom = getZoom(id);
+        const visStartT = Math.floor(zoom.start * (timeline.length - 1));
+        const visEndT = Math.ceil(zoom.end * (timeline.length - 1));
+        const visTimeline = timeline.slice(visStartT, visEndT + 1);
+        if (!visTimeline.length) return;
+
+        const tsMin = visTimeline[0];
+        const tsMax = visTimeline[visTimeline.length - 1];
+        const tsToX = (ts) => pad.left + ((ts - tsMin) / Math.max(1, tsMax - tsMin)) * plotW;
+
+        const zNorm = new Map();
+        if (useZScore) {
+          for (const s of valid) {
+            const m = seriesTsMap.get(s);
+            const entries = visTimeline.map(ts => m.get(ts) || null);
+            const rawVals = entries.map(e => e ? e.seriesVal : null);
+            const rawTrend = entries.map(e => e ? e.trendVal : null);
+            zNorm.set(s, { series: zScore(rawVals), trend: s.trend ? zScore(rawTrend) : null });
+          }
+        }
+
+        let minY = Infinity, maxY = -Infinity;
+        for (const s of valid) {
+          const m = seriesTsMap.get(s);
+          const zn = zNorm.get(s);
+          visTimeline.forEach((ts, ti) => {
+            const e = m.get(ts);
+            if (!e) return;
+            const sv = useZScore ? (zn ? zn.series[ti] : null) : (isCycleChart ? e.cycleVal : e.seriesVal);
+            const tv = useZScore ? (zn ? zn.trend[ti] : null) : (isCycleChart ? null : e.trendVal);
+            if (sv != null && !Number.isNaN(sv)) { minY = Math.min(minY, sv); maxY = Math.max(maxY, sv); }
+            if (tv != null && !Number.isNaN(tv)) { minY = Math.min(minY, tv); maxY = Math.max(maxY, tv); }
+          });
+        }
+        if (minY === Infinity) return;
+        const rng = maxY - minY || 1;
+        minY -= rng * 0.06;
+        maxY += rng * 0.06;
+        const range2 = maxY - minY || 1;
+        const scaleY = (y) => pad.top + plotH - ((y - minY) / range2) * plotH;
+
+        chartDataCache[id] = {
+          valid, pad, plotW, plotH,
+          maxLen: timeline.length, visStart: visStartT, visEnd: visEndT, visLen: visTimeline.length,
+          scaleX: (i) => tsToX(timeline[visStartT + i] || timeline[visStartT]),
+          scaleY, minY, maxY, isCycleChart, seriesScaleY: new Map(valid.map(s => [s, scaleY])),
+          useTimeline: true, timeline, visTimeline, seriesTsMap, tsToX
+        };
+
+        const numYTicks = 6;
+        ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 1;
+        for (let i = 0; i <= numYTicks; i++) {
+          const py = pad.top + (plotH * i) / numYTicks;
+          ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(w - pad.right, py); ctx.stroke();
+        }
+
+        ctx.font = 'bold 13px Arial'; ctx.textAlign = 'right'; ctx.fillStyle = '#333';
+        for (let i = 0; i <= numYTicks; i++) {
+          const yVal = minY + (range2 * (numYTicks - i) / numYTicks);
+          ctx.fillText(useZScore ? yVal.toFixed(1) + 'σ' : yVal.toFixed(2), pad.left - 8, pad.top + (plotH * i) / numYTicks + 4);
+        }
+
+        ctx.fillStyle = '#111'; ctx.font = 'bold 13px Arial';
+        ctx.save(); ctx.translate(16, pad.top + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center';
+        ctx.fillText(isCycleChart ? 'Cycle (deviation)' : useZScore ? 'Std. deviations (σ)' : 'Value', 0, 0);
+        ctx.restore();
+
+        if (isCycleChart || useZScore) {
+          ctx.setLineDash([4, 2]); ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(pad.left, scaleY(0)); ctx.lineTo(w - pad.right, scaleY(0)); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        for (const s of valid) {
+          const m = seriesTsMap.get(s);
+          const zn = zNorm.get(s);
+          const visTsMin = visTimeline[0], visTsMax = visTimeline[visTimeline.length - 1];
+          const ownTs = Array.from(m.keys()).filter(ts => ts >= visTsMin && ts <= visTsMax).sort((a, b) => a - b);
+          const tsToZIdx = useZScore ? new Map(visTimeline.map((ts, i) => [ts, i])) : null;
+
+          if (isCycleChart) {
+            ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.fillStyle = s.color;
+            const pts = ownTs.map(ts => {
+              const e = m.get(ts);
+              const v = e ? e.cycleVal : null;
+              return (v != null && !Number.isNaN(v)) ? { x: tsToX(ts), y: scaleY(v) } : null;
+            }).filter(Boolean);
+            if (pts.length >= 1) drawSmoothedLine(ctx, pts);
+
+          } else if (s.trend) {
+            const sc = seriesColors(s, true);
+            ctx.strokeStyle = sc.trend; ctx.lineWidth = 2; ctx.setLineDash(sc.dash); ctx.fillStyle = sc.trend;
+            const tPts = ownTs.map(ts => {
+              const ti = tsToZIdx ? tsToZIdx.get(ts) : null;
+              const tv = useZScore
+                ? (zn && zn.trend && ti != null ? zn.trend[ti] : null)
+                : (m.get(ts) ? m.get(ts).trendVal : null);
+              return (tv != null && !Number.isNaN(tv)) ? { x: tsToX(ts), y: scaleY(tv) } : null;
+            }).filter(Boolean);
+            if (tPts.length >= 1) drawSmoothedLine(ctx, tPts);
+            ctx.setLineDash([]);
+
+            const colorFor = (above) => above ? sc.above : sc.below;
+            for (let oi = 0; oi < ownTs.length - 1; oi++) {
+              const ts0 = ownTs[oi], ts1 = ownTs[oi + 1];
+              const ti0 = tsToZIdx ? tsToZIdx.get(ts0) : null;
+              const ti1 = tsToZIdx ? tsToZIdx.get(ts1) : null;
+              const sv0 = useZScore ? (zn && zn.series && ti0 != null ? zn.series[ti0] : null) : (m.get(ts0) ? m.get(ts0).seriesVal : null);
+              const sv1 = useZScore ? (zn && zn.series && ti1 != null ? zn.series[ti1] : null) : (m.get(ts1) ? m.get(ts1).seriesVal : null);
+              const tv0 = useZScore ? (zn && zn.trend && ti0 != null ? zn.trend[ti0] : null) : (m.get(ts0) ? m.get(ts0).trendVal : null);
+              const tv1 = useZScore ? (zn && zn.trend && ti1 != null ? zn.trend[ti1] : null) : (m.get(ts1) ? m.get(ts1).trendVal : null);
+              if (sv0 == null || sv1 == null || tv0 == null || tv1 == null) continue;
+              const above0 = sv0 >= tv0, above1 = sv1 >= tv1;
+              ctx.lineWidth = 2;
+              const x0 = tsToX(ts0), x1 = tsToX(ts1);
+              const y0 = scaleY(sv0), y1 = scaleY(sv1);
+              const cpx = (x0 + x1) / 2;
+              if (above0 === above1) {
+                ctx.strokeStyle = colorFor(above0);
+                ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1); ctx.stroke();
+              } else {
+                const dVal = sv1 - sv0;
+                const frac = (tv0 - sv0) / ((sv1 - sv0) - (tv1 - tv0));
+                const xCross = x0 + frac * (x1 - x0);
+                const yCross = scaleY(sv0 + frac * dVal);
+                const cpx0 = (x0 + xCross) / 2, cpx1 = (xCross + x1) / 2;
+                ctx.strokeStyle = colorFor(above0);
+                ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(cpx0, y0, cpx0, yCross, xCross, yCross); ctx.stroke();
+                ctx.strokeStyle = colorFor(above1);
+                ctx.beginPath(); ctx.moveTo(xCross, yCross); ctx.bezierCurveTo(cpx1, yCross, cpx1, y1, x1, y1); ctx.stroke();
+              }
+            }
+          } else {
+            ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.fillStyle = s.color;
+            const pts = ownTs.map(ts => {
+              const ti = tsToZIdx ? tsToZIdx.get(ts) : null;
+              const sv = useZScore
+                ? (zn && zn.series && ti != null ? zn.series[ti] : null)
+                : (m.get(ts) ? m.get(ts).seriesVal : null);
+              return (sv != null && !Number.isNaN(sv)) ? { x: tsToX(ts), y: scaleY(sv) } : null;
+            }).filter(Boolean);
+            if (pts.length >= 1) drawSmoothedLine(ctx, pts);
+          }
+        }
+
+        const labelW = 90;
+        const maxLabels = Math.max(1, Math.floor(plotW / labelW));
+        const step = Math.max(1, Math.ceil(visTimeline.length / maxLabels));
+        ctx.fillStyle = '#333'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'right';
+        visTimeline.forEach((ts, ti) => {
+          if (ti % step !== 0) return;
+          const x = tsToX(ts);
+          if (x < pad.left || x > w - pad.right) return;
+          let period = '';
+          for (const s of valid) {
+            const e = seriesTsMap.get(s).get(ts);
+            if (e && e.period) { period = e.period; break; }
+          }
+          if (!period) return;
+          ctx.save(); ctx.translate(x, h - pad.bottom + 8); ctx.rotate(-Math.PI / 4);
+          ctx.fillText(period, 0, 0); ctx.restore();
+        });
+
+        ctx.textAlign = 'center'; ctx.fillStyle = '#111'; ctx.font = 'bold 14px Arial';
+        ctx.fillText('Period', pad.left + plotW / 2, h - 6);
+        ctx.textAlign = 'left';
+
+        if (zoom.start > 0 || zoom.end < 1) {
+          let p0 = '', p1 = '';
+          const firstTs = visTimeline[0], lastTs = visTimeline[visTimeline.length - 1];
+          for (const s of valid) {
+            const m = seriesTsMap.get(s);
+            if (!m) continue;
+            const e0 = m.get(firstTs), e1 = m.get(lastTs);
+            if (e0) p0 = e0.period;
+            if (e1) p1 = e1.period;
+            if (p0 || p1) break;
+          }
+          ctx.fillStyle = 'rgba(45,108,223,0.85)'; ctx.font = '11px Arial'; ctx.textAlign = 'right';
+          ctx.fillText(`Zoom: ${p0} – ${p1}`, w - pad.right, pad.top - 8);
+          ctx.textAlign = 'left';
+        }
+      } else {
+        const maxLen = Math.max(...valid.map(s => s.series.length));
+        const zoom = getZoom(id);
+        const visStart = Math.floor(zoom.start * (maxLen - 1));
+        const visEnd = Math.ceil(zoom.end * (maxLen - 1));
+        const visLen = visEnd - visStart + 1;
+
+        const zNorm = new Map();
+        if (useZScore) {
+          for (const s of valid) {
+            const normSeries = zScore(s.series);
+            const normTrend = s.trend ? zScore(s.trend) : null;
+            zNorm.set(s, { series: normSeries, trend: normTrend });
+          }
+        }
+
+        let minY = Infinity, maxY = -Infinity;
+        for (const s of valid) {
+          const dSer = useZScore ? zNorm.get(s).series : (isCycleChart ? s.cycle : s.series);
+          const dTrend = useZScore ? zNorm.get(s).trend : (isCycleChart ? null : s.trend);
+          const check = dTrend ? [...dSer, ...dTrend] : dSer;
+          for (let i = visStart; i <= visEnd; i++) {
+            const v = check[i];
+            if (v != null && !Number.isNaN(v)) { minY = Math.min(minY, v); maxY = Math.max(maxY, v); }
+          }
+        }
+        if (minY === Infinity) return;
+        const rng = maxY - minY || 1;
+        minY -= rng * 0.06; maxY += rng * 0.06;
+        const range2 = maxY - minY || 1;
+        const scaleY = (y) => pad.top + plotH - ((y - minY) / range2) * plotH;
+        const scaleX = (i) => pad.left + ((i - visStart) / Math.max(1, visLen - 1)) * plotW;
+
+        chartDataCache[id] = { valid, pad, plotW, plotH, maxLen, visStart, visEnd, visLen, scaleX, scaleY, minY, maxY, isCycleChart, seriesScaleY: new Map(valid.map(s => [s, scaleY])) };
+
+        const numYTicks = 6;
+        ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 1;
+        for (let i = 0; i <= numYTicks; i++) {
+          const py = pad.top + (plotH * i) / numYTicks;
+          ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(w - pad.right, py); ctx.stroke();
+        }
+
+        ctx.font = 'bold 13px Arial'; ctx.textAlign = 'right'; ctx.fillStyle = '#333';
+        for (let i = 0; i <= numYTicks; i++) {
+          const yVal = minY + (range2 * (numYTicks - i) / numYTicks);
+          ctx.fillText(useZScore ? yVal.toFixed(1) + 'σ' : yVal.toFixed(2), pad.left - 8, pad.top + (plotH * i) / numYTicks + 4);
+        }
+
+        ctx.fillStyle = '#111'; ctx.font = 'bold 13px Arial';
+        ctx.save(); ctx.translate(16, pad.top + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center';
+        ctx.fillText(isCycleChart ? 'Cycle (deviation)' : useZScore ? 'Std. deviations (σ)' : 'Value', 0, 0);
+        ctx.restore();
+
+        if (isCycleChart || useZScore) {
+          ctx.setLineDash([4, 2]); ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(pad.left, scaleY(0)); ctx.lineTo(w - pad.right, scaleY(0)); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        const dispSeries = (s) => useZScore ? zNorm.get(s).series : s.series;
+        const dispTrend = (s) => useZScore ? zNorm.get(s).trend : s.trend;
+        for (const s of valid) {
+          const dSer = dispSeries(s);
+          const dTrend = dispTrend(s);
+          const n = dSer.length;
+
+          if (isCycleChart) {
+            ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.fillStyle = s.color;
+            const pts = [];
+            for (let i = visStart; i <= Math.min(visEnd, s.cycle.length - 1); i++) {
+              const v = s.cycle[i];
+              pts.push((v == null || Number.isNaN(v)) ? null : { x: scaleX(i), y: scaleY(v) });
+            }
+            let seg = [];
+            for (const p of pts) { if (p) { seg.push(p); } else { if (seg.length >= 1) drawSmoothedLine(ctx, seg); seg = []; } }
+            if (seg.length >= 1) drawSmoothedLine(ctx, seg);
+          } else if (dTrend) {
+            const sc = seriesColors(s, false);
+            ctx.strokeStyle = sc.trend; ctx.lineWidth = 2; ctx.setLineDash(sc.dash); ctx.fillStyle = sc.trend;
+            const tPts = [];
+            for (let i = visStart; i <= Math.min(visEnd, dTrend.length - 1); i++) {
+              const v = dTrend[i];
+              tPts.push((v == null || Number.isNaN(v)) ? null : { x: scaleX(i), y: scaleY(v) });
+            }
+            let seg = [];
+            for (const p of tPts) { if (p) { seg.push(p); } else { if (seg.length >= 1) drawSmoothedLine(ctx, seg); seg = []; } }
+            if (seg.length >= 1) drawSmoothedLine(ctx, seg);
+            ctx.setLineDash([]);
+
+            const colorFor = (above) => above ? sc.above : sc.below;
+            for (let i = Math.max(visStart, 0); i < Math.min(visEnd, n - 1); i++) {
+              const s0 = dSer[i], s1 = dSer[i + 1];
+              const t0 = dTrend[i], t1 = dTrend[i + 1];
+              if (s0 == null || s1 == null || t0 == null || t1 == null) continue;
+              const above0 = s0 >= t0, above1 = s1 >= t1;
+              ctx.lineWidth = 2;
+              const x0 = scaleX(i), x1 = scaleX(i + 1);
+              const y0 = scaleY(s0), y1 = scaleY(s1);
+              const cpx = (x0 + x1) / 2;
+              if (above0 === above1) {
+                ctx.strokeStyle = colorFor(above0);
+                ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(cpx, y0, cpx, y1, x1, y1); ctx.stroke();
+              } else {
+                const dVal = s1 - s0;
+                const frac = (t0 - s0) / ((s1 - s0) - (t1 - t0));
+                const xCross = scaleX(i + frac);
+                const yCross = scaleY(s0 + frac * dVal);
+                const cpx0 = (x0 + xCross) / 2, cpx1 = (xCross + x1) / 2;
+                ctx.strokeStyle = colorFor(above0);
+                ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(cpx0, y0, cpx0, yCross, xCross, yCross); ctx.stroke();
+                ctx.strokeStyle = colorFor(above1);
+                ctx.beginPath(); ctx.moveTo(xCross, yCross); ctx.bezierCurveTo(cpx1, yCross, cpx1, y1, x1, y1); ctx.stroke();
+              }
+            }
+          } else {
+            ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.fillStyle = s.color;
+            const pts = [];
+            for (let i = visStart; i <= Math.min(visEnd, dSer.length - 1); i++) {
+              const v = dSer[i];
+              pts.push((v == null || Number.isNaN(v)) ? null : { x: scaleX(i), y: scaleY(v) });
+            }
+            let seg = [];
+            for (const p of pts) {
+              if (p) {
+                seg.push(p);
+              } else {
+                if (seg.length >= 1) {
+                  if (s.id === 'repo') drawStraightLine(ctx, seg);
+                  else drawSmoothedLine(ctx, seg);
+                }
+                seg = [];
+              }
+            }
+            if (seg.length >= 1) {
+              if (s.id === 'repo') drawStraightLine(ctx, seg);
+              else drawSmoothedLine(ctx, seg);
+            }
+          }
+        }
+
+        const labelW = 90;
+        const maxLabels = Math.max(1, Math.floor(plotW / labelW));
+        const step = Math.max(1, Math.ceil(visLen / maxLabels));
+        ctx.fillStyle = '#333'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'right';
+        for (let i = visStart; i <= visEnd; i++) {
+          if ((i - visStart) % step !== 0) continue;
+          const x = scaleX(i);
+          if (x < pad.left || x > w - pad.right) continue;
+          let period = '';
+          for (const s of valid) { if (s.period && s.period[i]) { period = s.period[i]; break; } }
+          if (!period) continue;
+          ctx.save(); ctx.translate(x, h - pad.bottom + 8); ctx.rotate(-Math.PI / 4);
+          ctx.fillText(period, 0, 0); ctx.restore();
+        }
+
+        ctx.textAlign = 'center'; ctx.fillStyle = '#111'; ctx.font = 'bold 14px Arial';
+        ctx.fillText('Period', pad.left + plotW / 2, h - 6);
+        ctx.textAlign = 'left';
+
+        if (zoom.start > 0 || zoom.end < 1) {
+          let p0 = '', p1 = '';
+          for (const s of valid) {
+            if (s.period) {
+              if (s.period[visStart]) p0 = s.period[visStart];
+              if (s.period[visEnd]) p1 = s.period[visEnd];
+              break;
+            }
+          }
+          ctx.fillStyle = 'rgba(45,108,223,0.85)'; ctx.font = '11px Arial'; ctx.textAlign = 'right';
+          ctx.fillText(`Zoom: ${p0} – ${p1}`, w - pad.right, pad.top - 8);
+          ctx.textAlign = 'left';
+        }
+      }
+    }
+
+    function setupChartInteraction(canvasId, tooltipId) {
+      const canvas = document.getElementById(canvasId);
+      const tooltip = document.getElementById(tooltipId);
+      if (!canvas || !tooltip) return;
+
+      let dragStart = null;
+      let dragZoom = null;
+
+      function getIdx(clientX) {
+        const data = chartDataCache[canvasId];
+        if (!data) return null;
+        const rect = canvas.getBoundingClientRect();
+        const scale = canvas.width / rect.width;
+        const x = (clientX - rect.left) * scale;
+        const frac = (x - data.pad.left) / data.plotW;
+        return Math.max(0, Math.min(1, frac));
+      }
+
+      // Tooltip on mousemove
+      canvas.addEventListener('mousemove', (e) => {
+        const data = chartDataCache[canvasId];
+        if (!data || !data.valid.length) return;
+        const rect = canvas.getBoundingClientRect();
+        const scale = canvas.width / rect.width;
+        const x = (e.clientX - rect.left) * scale;
+        if (x < data.pad.left || x > canvas.width - data.pad.right) { tooltip.style.display = 'none'; return; }
+        const fracInView = (x - data.pad.left) / data.plotW;
+
+        let period = '—';
+        let html = '';
+        const multiMode = data.valid.length > 1;
+
+        if (data.useTimeline && data.visTimeline && data.seriesTsMap) {
+          const tiFloat = fracInView * (data.visTimeline.length - 1);
+          const tiClamped = Math.max(0, Math.min(data.visTimeline.length - 1, Math.round(tiFloat)));
+          const ts = data.visTimeline[tiClamped];
+          for (const s of data.valid) {
+            const e = data.seriesTsMap.get(s).get(ts);
+            if (e && e.period) { period = e.period; break; }
+          }
+          html = '<strong>' + period + '</strong><br>';
+          for (const s of data.valid) {
+            const entry = data.seriesTsMap.get(s).get(ts);
+            const val = entry ? (data.isCycleChart ? entry.cycleVal : entry.seriesVal) : null;
+            if (val == null || Number.isNaN(val)) continue;
+            const sc = seriesColors(s, true);
+            const trendVal = (!data.isCycleChart && entry) ? entry.trendVal : null;
+            const dotColor = (trendVal != null && !Number.isNaN(trendVal))
+              ? (val >= trendVal ? sc.above : sc.below)
+              : s.color;
+            html += '<span style="color:' + dotColor + '">●</span> ' + s.name + ': ' + val.toFixed(4) + '<br>';
+            if (!data.isCycleChart && s.id === 'nifty' && s.rawValues) {
+              const ri = s.period ? s.period.indexOf(entry.period) : -1;
+              if (ri >= 0 && s.rawValues[ri] != null && !Number.isNaN(s.rawValues[ri])) {
+                html += '<span style="color:' + dotColor + '">◦</span> ' + s.name + ' Open: ' + s.rawValues[ri].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '<br>';
+              }
+            }
+            if (trendVal != null && !Number.isNaN(trendVal)) {
+              html += '<span style="color:' + sc.trend + '">—</span> ' + s.name + ' Trend: ' + trendVal.toFixed(4) + '<br>';
+            }
+          }
+        } else {
+          const idxFloat = data.visStart + fracInView * (data.visLen - 1);
+          const idxClamped = Math.max(data.visStart, Math.min(data.visEnd, Math.round(idxFloat)));
+          for (const s of data.valid) { if (s.period && s.period[idxClamped]) { period = s.period[idxClamped]; break; } }
+          html = '<strong>' + period + '</strong><br>';
+          for (const s of data.valid) {
+            const val = data.isCycleChart ? s.cycle[idxClamped] : s.series[idxClamped];
+            if (val == null || Number.isNaN(val)) continue;
+            const sc = seriesColors(s, multiMode);
+            const trendVal = (!data.isCycleChart && s.trend) ? s.trend[idxClamped] : null;
+            const dotColor = (trendVal != null && !Number.isNaN(trendVal))
+              ? (val >= trendVal ? sc.above : sc.below)
+              : s.color;
+            html += '<span style="color:' + dotColor + '">●</span> ' + s.name + ': ' + val.toFixed(4) + '<br>';
+            if (!data.isCycleChart && s.id === 'nifty' && s.rawValues && s.rawValues[idxClamped] != null && !Number.isNaN(s.rawValues[idxClamped])) {
+              html += '<span style="color:' + dotColor + '">◦</span> ' + s.name + ' Open: ' + s.rawValues[idxClamped].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '<br>';
+            }
+            if (trendVal != null && !Number.isNaN(trendVal)) {
+              html += '<span style="color:' + sc.trend + '">—</span> ' + s.name + ' Trend: ' + trendVal.toFixed(4) + '<br>';
+            }
+          }
+        }
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+        tooltip.style.top = (e.clientY - rect.top + 15) + 'px';
+
+        // Pan while dragging
+        if (dragStart !== null) {
+          const frac = getIdx(e.clientX);
+          const delta = dragStart - frac;
+          const z = dragZoom;
+          const span = z.end - z.start;
+          let ns = Math.max(0, z.start + delta);
+          let ne = ns + span;
+          if (ne > 1) { ne = 1; ns = 1 - span; }
+          zoomState[canvasId] = { start: ns, end: ne };
+          redrawChart(canvasId);
+          dragStart = frac;
+          dragZoom = { ...zoomState[canvasId] };
+        }
+      });
+
+      canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+      // Scroll to zoom
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const frac = getIdx(e.clientX);
+        if (frac === null) return;
+        const z = getZoom(canvasId);
+        const span = z.end - z.start;
+        const factor = e.deltaY > 0 ? 1.15 : 0.87;
+        let newSpan = Math.min(1, Math.max(0.02, span * factor));
+        let ns = frac - (frac - z.start) * (newSpan / span);
+        let ne = ns + newSpan;
+        if (ns < 0) { ns = 0; ne = newSpan; }
+        if (ne > 1) { ne = 1; ns = 1 - newSpan; }
+        zoomState[canvasId] = { start: ns, end: ne };
+        redrawChart(canvasId);
+      }, { passive: false });
+
+      // Drag to pan
+      canvas.addEventListener('mousedown', (e) => {
+        dragStart = getIdx(e.clientX);
+        dragZoom = { ...getZoom(canvasId) };
+        canvas.style.cursor = 'grabbing';
+      });
+      window.addEventListener('mouseup', () => {
+        dragStart = null; dragZoom = null;
+        canvas.style.cursor = 'crosshair';
+      });
+
+      // Double-click to reset
+      canvas.addEventListener('dblclick', () => {
+        zoomState[canvasId] = { start: 0, end: 1 };
+        redrawChart(canvasId);
+      });
+    }
+
+    let lastChartSeries = [], lastCycleSeries = [], lastRepoSeries = [];
+
+    function redrawChart(id) {
+      if (id === 'chartSeries') {
+        drawMultiChart(id, lastChartSeries, false);
+      } else if (id === 'chartRepo') {
+        drawMultiChart(id, lastRepoSeries, false);
+      } else if (id === 'chartCycle') {
+        drawMultiChart(id, lastCycleSeries, true);
+      } else if (id === 'chartOverlayCanvas') {
+        const src = overlaySourceId;
+        if (src === 'chartCycle') {
+          drawMultiChart(id, lastCycleSeries, true);
+        } else if (src === 'chartRepo') {
+          drawMultiChart(id, lastRepoSeries, false);
+        } else {
+          drawMultiChart(id, lastChartSeries, false);
+        }
+      }
+    }
+
+    function resetZoom(id) {
+      zoomState[id] = { start: 0, end: 1 };
+      redrawChart(id);
+    }
+
+    let overlaySourceId = null;
+
+    function expandChart(sourceId) {
+      overlaySourceId = sourceId;
+      const isCycle = sourceId === 'chartCycle';
+      const isRepo = sourceId === 'chartRepo';
+      const seriesList = isCycle ? lastCycleSeries : (isRepo ? lastRepoSeries : lastChartSeries);
+      document.getElementById('overlayTitle').textContent = isCycle
+        ? 'Cycle (deviation from trend)'
+        : (isRepo ? 'Repo Rate (4.1 Policy Repo Rate)' : 'Series & HP trend');
+      const overlay = document.getElementById('chartOverlay');
+      overlay.classList.add('active');
+      // copy zoom state
+      zoomState['chartOverlayCanvas'] = { ...(zoomState[sourceId] || { start: 0, end: 1 }) };
+      drawMultiChart('chartOverlayCanvas', seriesList, isCycle);
+      // copy legend
+      document.getElementById('legendOverlay').innerHTML =
+        document.getElementById(isCycle ? 'legendCycle' : (isRepo ? 'legendRepo' : 'legendSeries')).innerHTML;
+    }
+
+    function closeOverlay() {
+      document.getElementById('chartOverlay').classList.remove('active');
+      overlaySourceId = null;
+    }
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlay(); });
+
+    function renderCharts() {
+      const selected = getSelectedSeries();
+      const lambdaWrap = document.getElementById('lambdaWrap');
+      const cycleWrap = document.getElementById('chartCycleWrap');
+
+      const hasLog = selected.some(c => seriesModes[c.id] === 'log');
+      lambdaWrap.style.display = hasLog ? '' : 'none';
+      cycleWrap.style.display = hasLog ? '' : 'none';
+
+      // Build raw series first
+      let rawList = [];
+      for (const c of selected) {
+        const s = getSeriesForChart(c.id);
+        if (s) rawList.push({ s, mode: seriesModes[c.id] || 'normal' });
+      }
+
+      // Compute overlap window if match is on and multiple series selected
+      let startTs = -Infinity, endTs = Infinity;
+      if (matchTimeFrames && rawList.length > 1) {
+        for (const { s } of rawList) {
+          const dates = s.period.map(parsePeriodToDate).filter(t => t !== null);
+          if (dates.length) {
+            startTs = Math.max(startTs, Math.min(...dates));
+            endTs   = Math.min(endTs,   Math.max(...dates));
+          }
+        }
+      }
+
+      const chartSeries = [];
+      const cycleSeries = [];
+      for (const { s, mode } of rawList) {
+        const clipped = (matchTimeFrames && rawList.length > 1 && startTs <= endTs)
+          ? clipSeries(s, startTs, endTs) : s;
+        if (mode === 'log' && clipped.trend) {
+          chartSeries.push({ ...clipped });
+          cycleSeries.push(clipped);
+        } else {
+          chartSeries.push({ ...clipped, trend: null, cycle: null });
+        }
+      }
+
+      lastChartSeries = chartSeries;
+      lastCycleSeries = cycleSeries;
+      drawMultiChart('chartSeries', chartSeries, false);
+      if (hasLog) drawMultiChart('chartCycle', cycleSeries, true);
+
+      const multiMode = chartSeries.length > 1;
+      const legItems = [];
+      for (const s of chartSeries) {
+        if (s.trend) {
+          const sc = seriesColors(s, multiMode);
+          legItems.push(
+            `<span style="color:${sc.trend}"><strong>—</strong> ${s.name} trend</span>` +
+            ` <span style="color:${sc.above}"><strong>●</strong> above</span>` +
+            ` <span style="color:${sc.below}"><strong>●</strong> below</span>`
+          );
+        } else {
+          legItems.push(`<span style="color:${s.color}"><strong>●</strong> ${s.name}</span>`);
+        }
+      }
+      document.getElementById('legendSeries').innerHTML = legItems.join(' &nbsp;|&nbsp; ');
+      document.getElementById('legendCycle').innerHTML = cycleSeries.map(s =>
+        `<span style="color:${s.color}"><strong>●</strong> ${s.name} cycle</span>`
+      ).join(' ');
+
+      const repoWrap = document.getElementById('repoChartWrap');
+      const repoLegend = document.getElementById('legendRepo');
+      if (!showRepoRate) {
+        repoWrap.style.display = 'none';
+        repoLegend.innerHTML = '';
+        lastRepoSeries = [];
+      } else {
+        const repoSeries = getRepoSeriesForChart();
+        if (repoSeries) {
+          repoWrap.style.display = '';
+          lastRepoSeries = [repoSeries];
+          drawMultiChart('chartRepo', [repoSeries], false);
+          repoLegend.innerHTML = '<span style="color:#6c757d"><strong>●</strong> Repo Rate</span>';
+        } else {
+          repoWrap.style.display = 'none';
+          repoLegend.innerHTML = '';
+          lastRepoSeries = [];
+        }
+      }
+    }
+
+    function updateView() {
+      renderTable();
+      renderCharts();
+      renderCorrelation();
+      renderCorrelationChart();
+    }
+
+    function setSeriesMode(id, mode) {
+      seriesModes[id] = mode;
+      if (mode === 'log') computeHPForSeries(id);
+      updateView();
+    }
+
+    function setSeriesSelected(id, checked) {
+      seriesSelected[id] = checked;
+      updateView();
+    }
+
+    function setSeriesLambda(id, val) {
+      seriesLambda[id] = Math.max(1, parseFloat(val) || 1600);
+      if (seriesModes[id] === 'log') {
+        computeHPForSeries(id);
+        updateView();
+      }
+    }
+
+    function buildSeriesUI() {
+      const wrap = document.getElementById('seriesControls');
+      wrap.innerHTML = '';
+      for (const cfg of SERIES_CONFIG) {
+        const div = document.createElement('div');
+        div.className = 'series-item';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = 'cb_' + cfg.id;
+        cb.checked = seriesSelected[cfg.id] || false;
+        cb.onchange = () => setSeriesSelected(cfg.id, cb.checked);
+
+        const lbl = document.createElement('label');
+        lbl.htmlFor = 'cb_' + cfg.id;
+        lbl.textContent = cfg.name;
+
+        const modeDiv = document.createElement('div');
+        modeDiv.className = 'mode-toggle';
+        const btnN = document.createElement('button');
+        btnN.textContent = 'Normal';
+        const btnL = document.createElement('button');
+        btnL.textContent = 'HP filter';
+
+        // λ input — only visible in log mode
+        const lambdaWrap = document.createElement('div');
+        lambdaWrap.className = 'lambda-wrap';
+        const lambdaLbl = document.createElement('span');
+        lambdaLbl.textContent = 'λ:';
+        const lambdaInput = document.createElement('input');
+        lambdaInput.type = 'number';
+        lambdaInput.min = '1';
+        lambdaInput.step = '100';
+        lambdaInput.value = seriesLambda[cfg.id] || 1600;
+        lambdaInput.title = 'HP smoothing parameter for ' + cfg.name;
+        lambdaInput.onchange = () => setSeriesLambda(cfg.id, lambdaInput.value);
+        lambdaInput.onkeydown = (e) => { if (e.key === 'Enter') setSeriesLambda(cfg.id, lambdaInput.value); };
+        lambdaWrap.appendChild(lambdaLbl);
+        lambdaWrap.appendChild(lambdaInput);
+
+        const m = seriesModes[cfg.id] || 'normal';
+        lambdaWrap.style.display = m === 'log' ? '' : 'none';
+
+        btnN.onclick = () => {
+          setSeriesMode(cfg.id, 'normal');
+          btnN.classList.add('active'); btnL.classList.remove('active');
+          lambdaWrap.style.display = 'none';
+        };
+        btnL.onclick = () => {
+          setSeriesMode(cfg.id, 'log');
+          btnL.classList.add('active'); btnN.classList.remove('active');
+          lambdaWrap.style.display = '';
+        };
+
+        if (m === 'log') btnL.classList.add('active'); else btnN.classList.add('active');
+        modeDiv.appendChild(btnN);
+        modeDiv.appendChild(btnL);
+
+        div.appendChild(cb);
+        div.appendChild(lbl);
+        div.appendChild(modeDiv);
+        div.appendChild(lambdaWrap);
+        wrap.appendChild(div);
+      }
+    }
+
+    async function loadAllData() {
+      const status = document.getElementById('status');
+      status.textContent = 'Loading...';
+      seriesData = {};
+      hpResults = {};
+
+      const files = {};
+      for (const cfg of SERIES_CONFIG) {
+        if (!files[cfg.file]) files[cfg.file] = [];
+        files[cfg.file].push(cfg);
+      }
+
+      try {
+        for (const path of Object.keys(files)) {
+          const r = await fetch(path);
+          const text = await r.text();
+          const rows = parseCSV(text);
+          for (const cfg of files[path]) {
+            if (cfg.id === 'gdpQ') seriesData.gdpQ = parseGDPQuarterly(rows, cfg);
+            else if (cfg.id === 'gdpA') seriesData.gdpA = parseGDPAnnual(rows, cfg);
+            else if (cfg.id === 'cpi') seriesData.cpi = parseInflation(rows, cfg, '6.1   All India', 'Log CPI');
+            else if (cfg.id === 'wpi') seriesData.wpi = parseInflation(rows, cfg, '6.3   Wholesale', 'Log WPI');
+            else if (cfg.id === 'nifty') seriesData.nifty = parseNifty(rows, cfg);
+            else if (cfg.id === 'iip') seriesData.iip = parseIIP(rows, cfg);
+          }
+          if (path === '../../35.csv') {
+            seriesData.repo = parseRepoRate(rows);
+          }
+        }
+
+        const counts = Object.entries(seriesData).map(([k, v]) => `${k}: ${v.length}`).join(', ');
+        status.textContent = 'Loaded: ' + counts;
+
+        for (const id of Object.keys(seriesData)) {
+          if (seriesModes[id] === 'log') computeHPForSeries(id);
+        }
+        buildSeriesUI();
+        updateView();
+      } catch (e) {
+        status.innerHTML = '<span class="error">' + e.message + '. Open via HTTP server or use file picker.</span>';
+      }
+    }
+
+
+    document.getElementById('btnLoad').onclick = () => loadAllData();
+
+    buildSeriesUI();
+    setupChartInteraction('chartSeries', 'tooltipSeries');
+    setupChartInteraction('chartRepo', 'tooltipRepo');
+    setupChartInteraction('chartCycle', 'tooltipCycle');
+    setupChartInteraction('chartOverlayCanvas', 'tooltipOverlay');
+
+    (function setupRepoToggle() {
+      const btn = document.getElementById('repoToggleBtn');
+      if (!btn) return;
+      function paint() {
+        btn.style.background = showRepoRate ? '#2d6cdf' : '#6c757d';
+        btn.textContent = showRepoRate ? 'Repo rate (on)' : 'Repo rate';
+      }
+      btn.onclick = () => {
+        showRepoRate = !showRepoRate;
+        paint();
+        updateView();
+      };
+      paint();
+    })();
+
+    (function setupCorrelationControls() {
+      const bO = document.getElementById('corrModeOrigBtn');
+      const bH = document.getElementById('corrModeHpBtn');
+      if (!bO || !bH) return;
+
+      function paintModeButtons() {
+        const on = '#2d6cdf', off = '#e8e8e8', offText = '#555';
+        bO.style.background = corrVizMode === 'orig' ? on : off;
+        bO.style.color = corrVizMode === 'orig' ? '#fff' : offText;
+        bH.style.background = corrVizMode === 'hp' ? on : off;
+        bH.style.color = corrVizMode === 'hp' ? '#fff' : offText;
+      }
+
+      bO.onclick = () => { corrVizMode = 'orig'; paintModeButtons(); renderCorrelationChart(); };
+      bH.onclick = () => { corrVizMode = 'hp'; paintModeButtons(); renderCorrelationChart(); };
+      paintModeButtons();
+    })();
+
+    (async () => {
+      await loadAllData();
+    })();
+  </script>
+</body>
+</html>
