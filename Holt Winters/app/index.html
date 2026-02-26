@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Holt-Winters Forecasting (multi-dataset)</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 1rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .params { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin: 1rem 0; }
+    .params label { display: flex; align-items: center; gap: 0.35rem; }
+    .params input[type="number"] { width: 4rem; }
+    #run { padding: 0.4rem 1rem; cursor: pointer; }
+    #status { margin: 0.5rem 0; color: #666; min-height: 1.2rem; }
+    .dataset-section { margin: 2rem 0; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+    .dataset-section h2 { margin-top: 0; font-size: 1.1rem; }
+    .dataset-section .metrics { font-weight: 600; margin: 0.5rem 0; }
+    .dataset-section .training-period { color: #555; margin: 0.25rem 0; }
+    .dataset-section .forecast-2026 { margin: 1rem 0; padding: 0.75rem; background: #fff; border: 1px solid #ccc; border-radius: 4px; }
+    .dataset-section .forecast-2026 h4 { margin: 0 0 0.5rem 0; }
+    .dataset-section table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin: 0.5rem 0; }
+    .dataset-section th, .dataset-section td { border: 1px solid #ccc; padding: 0.35rem 0.5rem; text-align: right; }
+    .dataset-section th:first-child, .dataset-section td:first-child { text-align: left; }
+    .dataset-section .plot { width: 100%; margin: 1rem 0; }
+    #results { margin-top: 1rem; }
+    .dataset-checkboxes { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; margin: 0.5rem 0; }
+    .dataset-checkboxes label { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Holt-Winters forecasting (multi-dataset)</h1>
+  <div class="params">
+    <span>Datasets:</span>
+    <div class="dataset-checkboxes" id="datasetCheckboxes"></div>
+  </div>
+  <div class="params">
+    <label>Alpha <input type="number" id="alpha" value="0.6" min="0.01" max="1" step="0.01" /></label>
+    <label>Beta <input type="number" id="beta" value="0.3" min="0.01" max="1" step="0.01" /></label>
+    <label>Gamma <input type="number" id="gamma" value="0.38" min="0.01" max="1" step="0.01" /></label>
+    <button id="run">Run</button>
+  </div>
+  <div id="status">Select dataset(s) and run.</div>
+  <div id="results"></div>
+
+  <script>
+    var DATASETS = [
+      { id: 'CPI', label: 'CPI', path: '../data/CPI.csv', trainStart: '2016-01-01', trainEnd: '2024-12-31', testStart: '2025-01-01', testEnd: '2025-12-31', forecastPeriods: 4, freq: 'MS', seasonalPeriods: 12, valueLabel: 'CPI', forecastStart: '2026-01-01', recentStart: '2023-01-01', recentEnd: '2025-12-31' },
+      { id: 'WPI', label: 'WPI', path: '../data/WPI.csv', trainStart: '2016-01-01', trainEnd: '2024-12-31', testStart: '2025-01-01', testEnd: '2025-12-31', forecastPeriods: 4, freq: 'MS', seasonalPeriods: 12, valueLabel: 'WPI', forecastStart: '2026-01-01', recentStart: '2023-01-01', recentEnd: '2025-12-31' },
+      { id: 'nifty', label: 'Nifty', path: '../data/nifty.csv', trainStart: '2012-01-01', trainEnd: '2024-12-31', testStart: '2025-01-01', testEnd: '2025-12-31', forecastPeriods: 4, freq: 'MS', seasonalPeriods: 12, valueLabel: 'Open', forecastStart: '2026-01-01', recentStart: '2023-01-01', recentEnd: '2025-12-31' },
+      { id: 'IIP', label: 'IIP', path: '../data/IIP.csv', trainStart: '2016-01-01', trainEnd: '2024-12-31', testStart: '2025-01-01', testEnd: '2025-12-31', forecastPeriods: 4, freq: 'QS', seasonalPeriods: 4, valueLabel: 'original', forecastStart: '2026-01-01', recentStart: '2023-01-01', recentEnd: '2025-12-31' },
+      { id: 'GDP-Q', label: 'GDP (Quarterly)', path: '../data/GDP-Q.csv', trainStart: '2012-01-01', trainEnd: '2024-12-31', testStart: '2025-01-01', testEnd: '2025-12-31', forecastPeriods: 4, freq: 'QS', seasonalPeriods: 4, valueLabel: 'GDP', forecastStart: '2026-01-01', recentStart: '2023-01-01', recentEnd: '2025-12-31' },
+      { id: 'GDP-A', label: 'GDP (Annual)', path: '../data/GDP-A.csv', trainStart: '1979-01-01', trainEnd: '2024-12-31', testStart: '2025-01-01', testEnd: '2025-12-31', forecastPeriods: 4, freq: 'AS', seasonalPeriods: 1, valueLabel: 'GDP', forecastStart: '2026-01-01', recentStart: '2020-01-01', recentEnd: '2025-12-31' }
+    ];
+
+    var statusEl = document.getElementById('status');
+    var resultsEl = document.getElementById('results');
+    var pyodideReady = false;
+    var pipelineDefined = false;
+
+    (function initCheckboxes() {
+      var container = document.getElementById('datasetCheckboxes');
+      DATASETS.forEach(function(d) {
+        var label = document.createElement('label');
+        label.innerHTML = '<input type="checkbox" name="dataset" value="' + d.id + '"> ' + d.label;
+        container.appendChild(label);
+      });
+    })();
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+
+    function fetchCsv(path) {
+      var base = new URL(document.baseURI || window.location.href);
+      var url = new URL(path, base).href;
+      return fetch(url).then(function(r) {
+        if (!r.ok) throw new Error(path + ' ' + r.status);
+        return r.text();
+      });
+    }
+
+    async function initPyodide() {
+      if (pyodideReady) return window.pyodide;
+      setStatus('Loading Python (Pyodide)…');
+      window.pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
+      await window.pyodide.loadPackage(['numpy', 'pandas']);
+      setStatus('Loading statsmodels and scikit-learn…');
+      await window.pyodide.loadPackage('micropip');
+      await window.pyodide.runPythonAsync('import micropip\nawait micropip.install("statsmodels")\nawait micropip.install("scikit-learn")');
+      pyodideReady = true;
+      return window.pyodide;
+    }
+
+    var runPythonCode = `
+import json
+import io
+
+def run_pipeline(csv_text, dataset_id, config_json, alpha, beta, gamma):
+    import pandas as pd
+    import numpy as np
+    from statsmodels.tsa.holtwinters import ExponentialSmoothing
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+    cfg = json.loads(config_json)
+    train_start = cfg["trainStart"]
+    train_end = cfg["trainEnd"]
+    test_start = cfg["testStart"]
+    test_end = cfg["testEnd"]
+    forecast_periods = int(cfg["forecastPeriods"])
+    freq = cfg["freq"]
+    seasonal_periods = int(cfg["seasonalPeriods"])
+    value_label = cfg["valueLabel"]
+    forecast_start = cfg["forecastStart"]
+    recent_start = cfg["recentStart"]
+    recent_end = cfg["recentEnd"]
+
+    raw = pd.read_csv(io.StringIO(csv_text))
+
+    if dataset_id == "CPI" or dataset_id == "WPI":
+        date_col, value_col = raw.columns[0], raw.columns[1]
+        def parse_date(s):
+            s = str(s).strip()
+            if not s or (s.startswith("20") and len(s) <= 4): return pd.NaT
+            try: return pd.to_datetime(s.split()[0], format="%d/%m/%y")
+            except: return pd.NaT
+        raw["Date"] = raw[date_col].apply(parse_date)
+        raw["Value"] = pd.to_numeric(raw[value_col], errors="coerce")
+        df = raw[["Date", "Value"]].dropna()
+        df = df[df["Date"].notna()].sort_values("Date").reset_index(drop=True)
+        df["Y"] = df["Value"]
+        df = df[["Date", "Y"]]
+        df["Date"] = pd.to_datetime(df["Date"])
+        df = df.set_index("Date").asfreq("MS", method="ffill").dropna()
+
+    elif dataset_id == "nifty":
+        date_col, value_col = raw.columns[0], raw.columns[1]
+        raw["Date"] = pd.to_datetime(raw[date_col].astype(str).str.strip(), format="%d/%m/%y")
+        raw["Value"] = pd.to_numeric(raw[value_col].astype(str).str.replace(",", ""), errors="coerce")
+        df = raw[["Date", "Value"]].dropna()
+        df = df.rename(columns={"Value": "Y"})
+        df = df.set_index("Date").sort_index().asfreq("MS", method="ffill").dropna()
+
+    elif dataset_id == "IIP":
+        df = raw.rename(columns={raw.columns[0]: "period", raw.columns[1]: "Y"})
+        df = df[["period", "Y"]].dropna()
+        df["period"] = df["period"].astype(str).str.strip()
+        df = df[df["period"].str.match(r"^[0-9]{4}Q[1-4]$", na=False)]
+        df["Date"] = pd.to_datetime(df["period"].str[:4] + "-" + ((df["period"].str[5].astype(int) * 3).astype(str).str.zfill(2)) + "-01") + pd.offsets.QuarterEnd(0)
+        df["Y"] = pd.to_numeric(df["Y"], errors="coerce")
+        df = df.dropna(subset=["Y"])
+        df = df.set_index("Date")[["Y"]].sort_index()
+
+    elif dataset_id == "GDP-Q":
+        year_col, qtr_col, val_col = raw.columns[0], raw.columns[1], raw.columns[2]
+        raw["yr"] = raw[year_col].astype(str).str.strip().str[:4].astype(int)
+        raw["q"] = raw[qtr_col].astype(str).str.strip().str[1].astype(int)
+        raw["mo"] = raw["q"].map({1: 6, 2: 9, 3: 12, 4: 3})
+        raw["yr2"] = np.where(raw["q"] == 4, raw["yr"] + 1, raw["yr"])
+        raw["Date"] = pd.to_datetime(raw["yr2"].astype(str) + "-" + raw["mo"].astype(str).str.zfill(2) + "-01") + pd.offsets.MonthEnd(0)
+        raw["Y"] = pd.to_numeric(raw[val_col], errors="coerce")
+        df = raw[["Date", "Y"]].dropna()
+        df = df.set_index("Date").sort_index()
+
+    elif dataset_id == "GDP-A":
+        year_col, val_col = raw.columns[0], raw.columns[1]
+        raw["yr"] = raw[year_col].astype(str).str.strip().str[:4].astype(int)
+        raw["Date"] = pd.to_datetime(raw["yr"].astype(str) + "-12-31")
+        raw["Y"] = pd.to_numeric(raw[val_col], errors="coerce")
+        df = raw[["Date", "Y"]].dropna()
+        df = df.sort_values("Date").set_index("Date")
+    else:
+        return json.dumps({"error": "Unknown dataset_id", "dataset_id": dataset_id})
+
+    mask_train = (df.index >= train_start) & (df.index <= train_end)
+    mask_test = (df.index >= test_start) & (df.index <= test_end)
+    train = df.loc[mask_train]
+    test = df.loc[mask_test]
+    if train.empty or test.empty:
+        return json.dumps({"error": "Insufficient data for train or test.", "dataset_id": dataset_id})
+
+    use_mul = (train["Y"] > 0).all() and (df["Y"] > 0).all()
+    use_seasonal = seasonal_periods > 1
+    if use_seasonal:
+        if use_mul:
+            fit_eval = ExponentialSmoothing(train["Y"], trend="mul", seasonal="mul", seasonal_periods=seasonal_periods).fit(smoothing_level=alpha, smoothing_trend=beta, smoothing_seasonal=gamma, optimized=False)
+            fit_final = ExponentialSmoothing(df["Y"], trend="mul", seasonal="mul", seasonal_periods=seasonal_periods).fit(smoothing_level=alpha, smoothing_trend=beta, smoothing_seasonal=gamma, optimized=False)
+        else:
+            fit_eval = ExponentialSmoothing(train["Y"], trend="add", seasonal="add", seasonal_periods=seasonal_periods).fit(smoothing_level=alpha, smoothing_trend=beta, smoothing_seasonal=gamma, optimized=False)
+            fit_final = ExponentialSmoothing(df["Y"], trend="add", seasonal="add", seasonal_periods=seasonal_periods).fit(smoothing_level=alpha, smoothing_trend=beta, smoothing_seasonal=gamma, optimized=False)
+    else:
+        if use_mul:
+            fit_eval = ExponentialSmoothing(train["Y"], trend="mul", seasonal=None).fit(smoothing_level=alpha, smoothing_trend=beta, optimized=False)
+            fit_final = ExponentialSmoothing(df["Y"], trend="mul", seasonal=None).fit(smoothing_level=alpha, smoothing_trend=beta, optimized=False)
+        else:
+            fit_eval = ExponentialSmoothing(train["Y"], trend="add", seasonal=None).fit(smoothing_level=alpha, smoothing_trend=beta, optimized=False)
+            fit_final = ExponentialSmoothing(df["Y"], trend="add", seasonal=None).fit(smoothing_level=alpha, smoothing_trend=beta, optimized=False)
+
+    pred_test = fit_eval.forecast(len(test))
+    mean_y = test["Y"].mean()
+    mae = mean_absolute_error(test["Y"], pred_test)
+    rmse = np.sqrt(mean_squared_error(test["Y"], pred_test))
+    mae_pct = round((mae / abs(mean_y)) * 100, 2) if mean_y != 0 else 0
+    rmse_pct = round((rmse / abs(mean_y)) * 100, 2) if mean_y != 0 else 0
+
+    pred_future = fit_final.forecast(forecast_periods)
+    if freq == "MS":
+        future_dates = pd.date_range(start=forecast_start, periods=forecast_periods, freq="MS")
+    elif freq == "QS":
+        future_dates = pd.date_range(start=forecast_start, periods=forecast_periods, freq="QS")
+    else:
+        future_dates = pd.date_range(start=forecast_start, periods=forecast_periods, freq="AS")
+
+    mask_recent = (df.index >= recent_start) & (df.index <= recent_end)
+    recent = df.loc[mask_recent]
+
+    def to_iso(ix):
+        return [d.strftime("%Y-%m-%d") for d in ix]
+
+    return json.dumps({
+        "dataset_id": dataset_id,
+        "value_label": value_label,
+        "train_start": train_start,
+        "train_end": train_end,
+        "train_dates": to_iso(train.index),
+        "train_cpi": train["Y"].tolist(),
+        "test_dates": to_iso(test.index),
+        "test_cpi": test["Y"].tolist(),
+        "pred_dates": to_iso(test.index),
+        "pred_cpi": pred_test.tolist(),
+        "mae_pct": mae_pct,
+        "rmse_pct": rmse_pct,
+        "recent_dates": to_iso(recent.index),
+        "recent_cpi": recent["Y"].tolist(),
+        "forecast_dates": [d.strftime("%Y-%m-%d") for d in future_dates],
+        "forecast_cpi": pred_future.tolist(),
+    })
+`;
+
+    function fmtNum(v) {
+      var n = Number(v);
+      return (v != null && v !== '' && !isNaN(n)) ? n.toFixed(4) : '';
+    }
+
+    function renderDatasetSection(d, datasetLabel) {
+      var section = document.createElement('div');
+      section.className = 'dataset-section';
+      section.id = 'section-' + d.dataset_id;
+      var valueLabel = d.value_label || 'Value';
+      section.innerHTML =
+        '<h2>' + datasetLabel + '</h2>' +
+        '<p class="training-period"><strong>Training period:</strong> ' + d.train_start + ' to ' + d.train_end + ' (from model execution)</p>' +
+        '<p class="metrics"><span title="Mean Absolute Error — average of |actual − predicted| (lower is better)">MAE</span>: ' + d.mae_pct + '% &nbsp; <span title="Root Mean Square Error — square root of average squared errors (lower is better)">RMSE</span>: ' + d.rmse_pct + '% (computed on test set)</p>' +
+        '<div class="forecast-2026"><h4>Forecast 2026 (model output)</h4><div id="fc-table-' + d.dataset_id + '"></div></div>' +
+        '<h4>Graph 1: Training data, Test data, Forecasted values (test period)</h4><div id="plot1-' + d.dataset_id + '" class="plot"></div>' +
+        '<h4>Table 1: Train, Test &amp; Predicted (same values as Graph 1)</h4><div id="table1-' + d.dataset_id + '"></div>' +
+        '<h4>Graph 2: Actual (recent) + Forecast (future)</h4><div id="plot2-' + d.dataset_id + '" class="plot"></div>' +
+        '<h4>Table 2: Actual &amp; Forecast (same values as Graph 2)</h4><div id="table2-' + d.dataset_id + '"></div>';
+      resultsEl.appendChild(section);
+
+      var fcTable = '<table><thead><tr><th>Date</th><th>' + valueLabel + '</th></tr></thead><tbody>';
+      for (var k = 0; k < d.forecast_dates.length; k++) {
+        fcTable += '<tr><td>' + d.forecast_dates[k] + '</td><td>' + fmtNum(d.forecast_cpi[k]) + '</td></tr>';
+      }
+      fcTable += '</tbody></table>';
+      document.getElementById('fc-table-' + d.dataset_id).innerHTML = fcTable;
+
+      Plotly.newPlot(document.getElementById('plot1-' + d.dataset_id), [
+        { x: d.train_dates, y: d.train_cpi, name: 'Training data', mode: 'lines', line: { shape: 'spline', color: '#1565C0', width: 2.5 } },
+        { x: d.test_dates, y: d.test_cpi, name: 'Test data', mode: 'lines', line: { shape: 'spline', color: '#E65100', width: 2.5 } },
+        { x: d.pred_dates, y: d.pred_cpi, name: 'Forecasted (test period)', mode: 'lines', line: { shape: 'spline', color: '#2E7D32', width: 2.5 } }
+      ], { title: datasetLabel + ': Training, Test & Forecasted (from model)', yaxis: { title: valueLabel }, template: 'simple_white', margin: { t: 40 }, showlegend: true });
+
+      Plotly.newPlot(document.getElementById('plot2-' + d.dataset_id), [
+        { x: d.recent_dates, y: d.recent_cpi, name: 'Actual', mode: 'lines', line: { shape: 'spline', color: '#00695C', width: 2.5 } },
+        { x: d.forecast_dates, y: d.forecast_cpi, name: 'Forecast (future)', mode: 'lines', line: { shape: 'spline', color: '#7B1FA2', width: 2.5 } }
+      ], { title: datasetLabel + ': Actual + Forecast (from model)', yaxis: { title: valueLabel }, template: 'simple_white', margin: { t: 40 }, showlegend: true });
+
+      var rows1 = '<table><thead><tr><th>Date</th><th>Train ' + valueLabel + '</th><th>Test ' + valueLabel + '</th><th>Predicted</th></tr></thead><tbody>';
+      for (var i = 0; i < d.train_dates.length; i++) rows1 += '<tr><td>' + d.train_dates[i] + '</td><td>' + fmtNum(d.train_cpi[i]) + '</td><td></td><td></td></tr>';
+      for (var i = 0; i < d.test_dates.length; i++) rows1 += '<tr><td>' + d.test_dates[i] + '</td><td></td><td>' + fmtNum(d.test_cpi[i]) + '</td><td>' + fmtNum(d.pred_cpi[i]) + '</td></tr>';
+      rows1 += '</tbody></table>';
+      document.getElementById('table1-' + d.dataset_id).innerHTML = rows1;
+
+      var rows2 = '<table><thead><tr><th>Date</th><th>Actual</th><th>Forecast</th></tr></thead><tbody>';
+      for (var j = 0; j < d.recent_dates.length; j++) rows2 += '<tr><td>' + d.recent_dates[j] + '</td><td>' + fmtNum(d.recent_cpi[j]) + '</td><td></td></tr>';
+      for (var j = 0; j < d.forecast_dates.length; j++) rows2 += '<tr><td>' + d.forecast_dates[j] + '</td><td></td><td>' + fmtNum(d.forecast_cpi[j]) + '</td></tr>';
+      rows2 += '</tbody></table>';
+      document.getElementById('table2-' + d.dataset_id).innerHTML = rows2;
+    }
+
+    function renderDatasetError(datasetLabel, message) {
+      var section = document.createElement('div');
+      section.className = 'dataset-section';
+      section.style.background = '#fff0f0';
+      section.innerHTML = '<h2>' + datasetLabel + '</h2><p class="metrics">Error: ' + message + '. No graphs or tables generated.</p>';
+      resultsEl.appendChild(section);
+    }
+
+    async function runPipeline() {
+      var selected = [];
+      document.querySelectorAll('input[name="dataset"]:checked').forEach(function(cb) { selected.push(cb.value); });
+      if (selected.length === 0) {
+        setStatus('Select at least one dataset.');
+        return;
+      }
+      await initPyodide();
+      if (!pipelineDefined) {
+        window.pyodide.runPython(runPythonCode);
+        pipelineDefined = true;
+      }
+      var pyodide = window.pyodide;
+      var alpha = parseFloat(document.getElementById('alpha').value) || 0.6;
+      var beta = parseFloat(document.getElementById('beta').value) || 0.3;
+      var gamma = parseFloat(document.getElementById('gamma').value) || 0.38;
+      resultsEl.innerHTML = '';
+      setStatus('Running for ' + selected.length + ' dataset(s)…');
+      for (var s = 0; s < selected.length; s++) {
+        var dsId = selected[s];
+        var cfg = DATASETS.find(function(d) { return d.id === dsId; });
+        if (!cfg) continue;
+        setStatus('Loading ' + cfg.path + '…');
+        var csvText;
+        try { csvText = await fetchCsv(cfg.path); } catch (e) { renderDatasetError(cfg.label, 'Failed to load data: ' + e.message); continue; }
+        setStatus('Running Holt-Winters: ' + cfg.label + '…');
+        pyodide.globals.set('csv_text', csvText);
+        pyodide.globals.set('dataset_id', dsId);
+        pyodide.globals.set('config_json', JSON.stringify(cfg));
+        pyodide.globals.set('alpha', alpha);
+        pyodide.globals.set('beta', beta);
+        pyodide.globals.set('gamma', gamma);
+        var resultJson;
+        try { resultJson = pyodide.runPython('run_pipeline(csv_text, dataset_id, config_json, alpha, beta, gamma)'); } catch (err) { renderDatasetError(cfg.label, err.message); continue; }
+        var d;
+        try { d = JSON.parse(resultJson); } catch (parseErr) { renderDatasetError(cfg.label, 'Invalid result: ' + parseErr.message); continue; }
+        if (d.error) { renderDatasetError(cfg.label, d.error); continue; }
+        renderDatasetSection(d, cfg.label);
+      }
+      setStatus('Done.');
+    }
+
+    document.getElementById('run').addEventListener('click', runPipeline);
+  </script>
+</body>
+</html>
