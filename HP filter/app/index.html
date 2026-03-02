@@ -168,7 +168,7 @@
     </div>
     <div class="chart-wrap" id="repoChartWrap" style="display:none;">
       <div class="chart-header">
-        <div class="chart-title">Repo Rate (4.1 Policy Repo Rate)</div>
+        <div class="chart-title">Repo Rate (4.1 Policy Repo Rate) — Series &amp; HP trend</div>
         <div class="chart-controls">
           <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
           <button onclick="expandChart('chartRepo')">⛶ Expand</button>
@@ -180,6 +180,19 @@
         <div id="tooltipRepo" class="chart-tooltip"></div>
       </div>
       <div class="legend" id="legendRepo"></div>
+      <div class="chart-header" style="margin-top:20px;">
+        <div class="chart-title">Repo Rate — Cycle (deviation from trend)</div>
+        <div class="chart-controls">
+          <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
+          <button onclick="expandChart('chartRepoCycle')">⛶ Expand</button>
+          <button onclick="resetZoom('chartRepoCycle')">↺ Reset</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="chartRepoCycle" width="1300" height="340"></canvas>
+        <div id="tooltipRepoCycle" class="chart-tooltip"></div>
+      </div>
+      <div class="legend" id="legendRepoCycle"></div>
     </div>
     <div class="chart-wrap" id="chartCycleWrap">
       <div class="chart-header">
@@ -224,7 +237,8 @@
       { id: 'cpi', name: 'CPI', file: '../data/35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#e74c3c', invertColors: true },
       { id: 'wpi', name: 'WPI', file: '../data/35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#d35400', invertColors: true },
       { id: 'nifty', name: 'Nifty 50', file: '../data/Nifty 50 Historical Data (1).csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#27ae60' },
-      { id: 'iip', name: 'IIP', file: '../data/iip filtered.csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#16a085', isIIP: true }
+      { id: 'iip', name: 'IIP', file: '../data/iip filtered.csv', rawCol: 1, logCol: 2, headerRow: 0, dataStartRow: 1, periodCol: 0, color: '#16a085', isIIP: true },
+      { id: 'repo', name: 'Repo Rate', file: '../data/35.csv', rawCol: -1, logCol: -1, headerRow: 3, dataStartRow: 6, periodCol: 0, color: '#6c757d' }
     ];
 
     const COLORS = ['#2d6cdf', '#8e44ad', '#e74c3c', '#d35400', '#16a085', '#27ae60', '#f39c12'];
@@ -238,6 +252,7 @@
       wpi:   { above: '#00bfa5', below: '#1a237e', trend: '#1565c0', dash: [10, 3, 2, 3] },
       iip:   { above: '#f57f17', below: '#006064', trend: '#16a085', dash: [8, 4] },
       nifty: { above: '#80cbc4', below: '#004d40', trend: '#27ae60', dash: [6, 3] },
+      repo:  { above: '#9e9e9e', below: '#424242', trend: '#6c757d', dash: [6, 3] },
     };
     const RAW_HP_IDS = new Set(['gdpQ', 'gdpA', 'cpi', 'wpi', 'iip', 'nifty', 'repo']);
 
@@ -566,17 +581,32 @@
     }
 
     function getRepoSeriesForChart() {
-      const data = seriesData.repo || [];
+      const data = seriesData.repo;
+      if (!data || data.length === 0) return null;
       const validData = data.filter(r => !Number.isNaN(r.raw) && isFinite(r.raw));
-      if (!validData.length) return null;
+      if (validData.length === 0) return null;
+      computeHPForSeries('repo');
+      const hp = hpResults.repo;
+      if (!hp) {
+        return {
+          id: 'repo',
+          name: 'Repo Rate',
+          series: validData.map(r => r.raw),
+          trend: null,
+          cycle: null,
+          period: validData.map(r => r.period),
+          color: '#6c757d'
+        };
+      }
       return {
         id: 'repo',
         name: 'Repo Rate',
         series: validData.map(r => r.raw),
-        trend: null,
-        cycle: null,
+        trend: hp.trend,
+        cycle: hp.cycle,
         period: validData.map(r => r.period),
-        color: '#6c757d'
+        color: '#6c757d',
+        rawValues: validData.map(r => r.raw)
       };
     }
 
@@ -1519,6 +1549,8 @@
         drawMultiChart(id, lastChartSeries, false);
       } else if (id === 'chartRepo') {
         drawMultiChart(id, lastRepoSeries, false);
+      } else if (id === 'chartRepoCycle') {
+        drawMultiChart(id, lastRepoSeries, true);
       } else if (id === 'chartCycle') {
         drawMultiChart(id, lastCycleSeries, true);
       } else if (id === 'chartOverlayCanvas') {
@@ -1527,6 +1559,8 @@
           drawMultiChart(id, lastCycleSeries, true);
         } else if (src === 'chartRepo') {
           drawMultiChart(id, lastRepoSeries, false);
+        } else if (src === 'chartRepoCycle') {
+          drawMultiChart(id, lastRepoSeries, true);
         } else {
           drawMultiChart(id, lastChartSeries, false);
         }
@@ -1544,18 +1578,18 @@
       overlaySourceId = sourceId;
       const isCycle = sourceId === 'chartCycle';
       const isRepo = sourceId === 'chartRepo';
-      const seriesList = isCycle ? lastCycleSeries : (isRepo ? lastRepoSeries : lastChartSeries);
+      const isRepoCycle = sourceId === 'chartRepoCycle';
+      const seriesList = isCycle ? lastCycleSeries : (isRepo || isRepoCycle ? lastRepoSeries : lastChartSeries);
+      const drawCycle = isCycle || isRepoCycle;
       document.getElementById('overlayTitle').textContent = isCycle
         ? 'Cycle (deviation from trend)'
-        : (isRepo ? 'Repo Rate (4.1 Policy Repo Rate)' : 'Series & HP trend');
+        : (isRepoCycle ? 'Repo Rate — Cycle (deviation from trend)' : (isRepo ? 'Repo Rate (4.1 Policy Repo Rate) — Series & HP trend' : 'Series & HP trend'));
       const overlay = document.getElementById('chartOverlay');
       overlay.classList.add('active');
-      // copy zoom state
       zoomState['chartOverlayCanvas'] = { ...(zoomState[sourceId] || { start: 0, end: 1 }) };
-      drawMultiChart('chartOverlayCanvas', seriesList, isCycle);
-      // copy legend
+      drawMultiChart('chartOverlayCanvas', seriesList, drawCycle);
       document.getElementById('legendOverlay').innerHTML =
-        document.getElementById(isCycle ? 'legendCycle' : (isRepo ? 'legendRepo' : 'legendSeries')).innerHTML;
+        document.getElementById(isCycle ? 'legendCycle' : (isRepoCycle ? 'legendRepoCycle' : (isRepo ? 'legendRepo' : 'legendSeries'))).innerHTML;
     }
 
     function closeOverlay() {
@@ -1635,6 +1669,7 @@
       if (!showRepoRate) {
         repoWrap.style.display = 'none';
         repoLegend.innerHTML = '';
+        if (document.getElementById('legendRepoCycle')) document.getElementById('legendRepoCycle').innerHTML = '';
         lastRepoSeries = [];
       } else {
         const repoSeries = getRepoSeriesForChart();
@@ -1642,10 +1677,23 @@
           repoWrap.style.display = '';
           lastRepoSeries = [repoSeries];
           drawMultiChart('chartRepo', [repoSeries], false);
-          repoLegend.innerHTML = '<span style="color:#6c757d"><strong>●</strong> Repo Rate</span>';
+          if (repoSeries.trend) {
+            const sc = seriesColors(repoSeries, false);
+            repoLegend.innerHTML =
+              `<span style="color:${sc.trend}"><strong>—</strong> Repo Rate trend</span>` +
+              ` <span style="color:${sc.above}"><strong>●</strong> above</span>` +
+              ` <span style="color:${sc.below}"><strong>●</strong> below</span>`;
+            drawMultiChart('chartRepoCycle', [repoSeries], true);
+            document.getElementById('legendRepoCycle').innerHTML =
+              '<span style="color:#6c757d"><strong>●</strong> Repo Rate cycle</span>';
+          } else {
+            repoLegend.innerHTML = '<span style="color:#6c757d"><strong>●</strong> Repo Rate</span>';
+            document.getElementById('legendRepoCycle').innerHTML = '';
+          }
         } else {
           repoWrap.style.display = 'none';
           repoLegend.innerHTML = '';
+          document.getElementById('legendRepoCycle').innerHTML = '';
           lastRepoSeries = [];
         }
       }
@@ -1772,14 +1820,9 @@
               else if (cfg.id === 'wpi') seriesData.wpi = parseInflation(rows, cfg, '6.3   Wholesale', 'Log WPI');
               else if (cfg.id === 'nifty') seriesData.nifty = parseNifty(rows, cfg);
               else if (cfg.id === 'iip') seriesData.iip = parseIIP(rows, cfg);
+              else if (cfg.id === 'repo') seriesData.repo = parseRepoRate(rows);
               if (seriesData[cfg.id] && seriesData[cfg.id].length) loaded.push(cfg.id);
             } catch (e) { failed.push(cfg.id); }
-          }
-          if (path === '../data/35.csv' && rows.length) {
-            try {
-              seriesData.repo = parseRepoRate(rows);
-              if (seriesData.repo && seriesData.repo.length) loaded.push('repo');
-            } catch (e) { failed.push('repo'); }
           }
         } catch (e) { failed.push(path); }
       }
@@ -1814,6 +1857,7 @@
     buildSeriesUI();
     setupChartInteraction('chartSeries', 'tooltipSeries');
     setupChartInteraction('chartRepo', 'tooltipRepo');
+    setupChartInteraction('chartRepoCycle', 'tooltipRepoCycle');
     setupChartInteraction('chartCycle', 'tooltipCycle');
     setupChartInteraction('chartOverlayCanvas', 'tooltipOverlay');
 
