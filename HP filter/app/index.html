@@ -180,8 +180,9 @@
         <div id="tooltipRepo" class="chart-tooltip"></div>
       </div>
       <div class="legend" id="legendRepo"></div>
+      <div id="repoTableWrap" style="margin-top:16px;overflow-x:auto;"></div>
       <div class="chart-header" style="margin-top:20px;">
-        <div class="chart-title">Repo Rate — Cycle (deviation from trend)</div>
+        <div class="chart-title">Repo Rate (4.1 Policy Repo Rate) — Original series</div>
         <div class="chart-controls">
           <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
           <button onclick="expandChart('chartRepoCycle')">⛶ Expand</button>
@@ -1542,7 +1543,7 @@
       });
     }
 
-    let lastChartSeries = [], lastCycleSeries = [], lastRepoSeries = [];
+    let lastChartSeries = [], lastCycleSeries = [], lastRepoSeries = [], lastRepoOriginalSeries = [];
 
     function redrawChart(id) {
       if (id === 'chartSeries') {
@@ -1550,7 +1551,7 @@
       } else if (id === 'chartRepo') {
         drawMultiChart(id, lastRepoSeries, false);
       } else if (id === 'chartRepoCycle') {
-        drawMultiChart(id, lastRepoSeries, true);
+        drawMultiChart(id, lastRepoOriginalSeries.length ? lastRepoOriginalSeries : lastRepoSeries, false);
       } else if (id === 'chartCycle') {
         drawMultiChart(id, lastCycleSeries, true);
       } else if (id === 'chartOverlayCanvas') {
@@ -1560,7 +1561,7 @@
         } else if (src === 'chartRepo') {
           drawMultiChart(id, lastRepoSeries, false);
         } else if (src === 'chartRepoCycle') {
-          drawMultiChart(id, lastRepoSeries, true);
+          drawMultiChart(id, lastRepoOriginalSeries.length ? lastRepoOriginalSeries : lastRepoSeries, false);
         } else {
           drawMultiChart(id, lastChartSeries, false);
         }
@@ -1579,11 +1580,11 @@
       const isCycle = sourceId === 'chartCycle';
       const isRepo = sourceId === 'chartRepo';
       const isRepoCycle = sourceId === 'chartRepoCycle';
-      const seriesList = isCycle ? lastCycleSeries : (isRepo || isRepoCycle ? lastRepoSeries : lastChartSeries);
-      const drawCycle = isCycle || isRepoCycle;
+      const seriesList = isCycle ? lastCycleSeries : (isRepo ? lastRepoSeries : (isRepoCycle ? (lastRepoOriginalSeries.length ? lastRepoOriginalSeries : lastRepoSeries) : lastChartSeries));
+      const drawCycle = isCycle;
       document.getElementById('overlayTitle').textContent = isCycle
         ? 'Cycle (deviation from trend)'
-        : (isRepoCycle ? 'Repo Rate — Cycle (deviation from trend)' : (isRepo ? 'Repo Rate (4.1 Policy Repo Rate) — Series & HP trend' : 'Series & HP trend'));
+        : (isRepoCycle ? 'Repo Rate (4.1 Policy Repo Rate) — Original series' : (isRepo ? 'Repo Rate (4.1 Policy Repo Rate) — Series & HP trend' : 'Series & HP trend'));
       const overlay = document.getElementById('chartOverlay');
       overlay.classList.add('active');
       zoomState['chartOverlayCanvas'] = { ...(zoomState[sourceId] || { start: 0, end: 1 }) };
@@ -1670,7 +1671,9 @@
         repoWrap.style.display = 'none';
         repoLegend.innerHTML = '';
         if (document.getElementById('legendRepoCycle')) document.getElementById('legendRepoCycle').innerHTML = '';
+        if (document.getElementById('repoTableWrap')) document.getElementById('repoTableWrap').innerHTML = '';
         lastRepoSeries = [];
+        lastRepoOriginalSeries = [];
       } else {
         const repoSeries = getRepoSeriesForChart();
         if (repoSeries) {
@@ -1683,18 +1686,34 @@
               `<span style="color:${sc.trend}"><strong>—</strong> Repo Rate trend</span>` +
               ` <span style="color:${sc.above}"><strong>●</strong> above</span>` +
               ` <span style="color:${sc.below}"><strong>●</strong> below</span>`;
-            drawMultiChart('chartRepoCycle', [repoSeries], true);
-            document.getElementById('legendRepoCycle').innerHTML =
-              '<span style="color:#6c757d"><strong>●</strong> Repo Rate cycle</span>';
+            const repoSeriesOriginal = { id: 'repo', name: 'Repo Rate', series: repoSeries.series, trend: null, cycle: null, period: repoSeries.period, color: '#6c757d' };
+            lastRepoOriginalSeries = [repoSeriesOriginal];
+            drawMultiChart('chartRepoCycle', lastRepoOriginalSeries, false);
+            document.getElementById('legendRepoCycle').innerHTML = '<span style="color:#6c757d"><strong>●</strong> Repo Rate (original)</span>';
+            const repoTableWrap = document.getElementById('repoTableWrap');
+            if (repoTableWrap) {
+              let tbl = '<p style="color:#888;margin-bottom:8px;font-size:13px">HP filter table — 4.1 Policy Repo Rate</p>';
+              tbl += '<table><thead><tr><th class="sticky">Period</th><th class="num">Series (4.1 Policy Repo Rate)</th><th class="num">Trend</th><th class="num">Cycle</th></tr></thead><tbody>';
+              for (let i = 0; i < repoSeries.period.length; i++) {
+                tbl += '<tr><td class="sticky">' + (repoSeries.period[i] || '—') + '</td><td class="num">' + formatNum(repoSeries.series[i]) + '</td><td class="num">' + formatNum(repoSeries.trend[i]) + '</td><td class="num">' + formatNum(repoSeries.cycle[i]) + '</td></tr>';
+              }
+              tbl += '</tbody></table>';
+              repoTableWrap.innerHTML = tbl;
+            }
           } else {
+            lastRepoOriginalSeries = [];
             repoLegend.innerHTML = '<span style="color:#6c757d"><strong>●</strong> Repo Rate</span>';
             document.getElementById('legendRepoCycle').innerHTML = '';
+            const repoTableWrap = document.getElementById('repoTableWrap');
+            if (repoTableWrap) repoTableWrap.innerHTML = '';
           }
         } else {
           repoWrap.style.display = 'none';
           repoLegend.innerHTML = '';
-          document.getElementById('legendRepoCycle').innerHTML = '';
+          if (document.getElementById('legendRepoCycle')) document.getElementById('legendRepoCycle').innerHTML = '';
+          if (document.getElementById('repoTableWrap')) document.getElementById('repoTableWrap').innerHTML = '';
           lastRepoSeries = [];
+          lastRepoOriginalSeries = [];
         }
       }
     }
