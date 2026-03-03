@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macro Test Data – Bank Credit Sectors</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #141c27;
+      --border: #2d3a4d;
+      --text: #e6edf3;
+      --muted: #8b9cb3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 1.5rem; color: var(--muted); font-size: 0.9rem; }
+    .chart-card {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1rem 1.5rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .chart-title { margin: 0 0 0.35rem; font-size: 1rem; color: var(--muted); }
+    .chart-container { width: 100%; height: 320px; }
+    .range-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .range-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    .view-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    .table-wrap {
+      margin-top: 0.75rem;
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0e1621;
+    }
+    table.mom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    table.mom-table th,
+    table.mom-table td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid rgba(45, 58, 77, 0.8);
+      white-space: nowrap;
+    }
+    table.mom-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    table.mom-table td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    table.mom-table tr:last-child td {
+      border-bottom: none;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab-bar button {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-bottom: -1px;
+    }
+    .tab-bar button:hover {
+      color: var(--text);
+    }
+    .tab-bar button.active {
+      color: var(--text);
+      border-bottom-color: var(--text);
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    .yield-spread-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .yield-spread-toggle select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Macro Test Data – Bank Credit Sectors</h1>
+  <p class="subtitle">Source: DBIE (Deployment of Bank Credit by Major Sectors, and Select Economic Indicators). Values in ₹ crore across reporting dates.</p>
+
+  <div class="tab-bar">
+    <button type="button" class="tab-btn active" data-tab="bank-credit">Bank Credit &amp; Indicators</button>
+    <button type="button" class="tab-btn" data-tab="yield-spread">Yield Spread Analysis</button>
+  </div>
+
+  <div id="tab-bank-credit" class="tab-pane active">
+  <div class="chart-card">
+    <h2 class="chart-title">Gross Bank Credit (II+III)</h2>
+    <div class="range-controls">
+      <span>Range:</span>
+      <select id="range-gbc" class="range-select">
+        <option value="all">All</option>
+        <option value="3m">3 months</option>
+        <option value="6m">6 months</option>
+        <option value="1y">1 year</option>
+        <option value="3y">3 years</option>
+        <option value="5y">5 years</option>
+      </select>
+      <span>View:</span>
+      <select id="view-gbc" class="view-select">
+        <option value="level">Level</option>
+        <option value="mom">MoM %</option>
+      </select>
+    </div>
+    <div class="chart-container"><canvas id="chart-gbc"></canvas></div>
+    <div class="table-wrap">
+      <table class="mom-table">
+        <thead>
+          <tr><th>Date</th><th class="num">Value (₹ crore)</th><th class="num">MoM change (%)</th></tr>
+        </thead>
+        <tbody id="table-gbc-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h2 class="chart-title">Non-Banking Financial Companies (NBFCs)</h2>
+    <div class="range-controls">
+      <span>Range:</span>
+      <select id="range-nbfc" class="range-select">
+        <option value="all">All</option>
+        <option value="3m">3 months</option>
+        <option value="6m">6 months</option>
+        <option value="1y">1 year</option>
+        <option value="3y">3 years</option>
+        <option value="5y">5 years</option>
+      </select>
+      <span>View:</span>
+      <select id="view-nbfc" class="view-select">
+        <option value="level">Level</option>
+        <option value="mom">MoM %</option>
+      </select>
+    </div>
+    <div class="chart-container"><canvas id="chart-nbfc"></canvas></div>
+    <div class="table-wrap">
+      <table class="mom-table">
+        <thead>
+          <tr><th>Date</th><th class="num">Value (₹ crore)</th><th class="num">MoM change (%)</th></tr>
+        </thead>
+        <tbody id="table-nbfc-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h2 class="chart-title">Housing</h2>
+    <div class="range-controls">
+      <span>Range:</span>
+      <select id="range-housing" class="range-select">
+        <option value="all">All</option>
+        <option value="3m">3 months</option>
+        <option value="6m">6 months</option>
+        <option value="1y">1 year</option>
+        <option value="3y">3 years</option>
+        <option value="5y">5 years</option>
+      </select>
+      <span>View:</span>
+      <select id="view-housing" class="view-select">
+        <option value="level">Level</option>
+        <option value="mom">MoM %</option>
+      </select>
+    </div>
+    <div class="chart-container"><canvas id="chart-housing"></canvas></div>
+    <div class="table-wrap">
+      <table class="mom-table">
+        <thead>
+          <tr><th>Date</th><th class="num">Value (₹ crore)</th><th class="num">MoM change (%)</th></tr>
+        </thead>
+        <tbody id="table-housing-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h2 class="chart-title">Vehicle Loans</h2>
+    <div class="range-controls">
+      <span>Range:</span>
+      <select id="range-vehicle" class="range-select">
+        <option value="all">All</option>
+        <option value="3m">3 months</option>
+        <option value="6m">6 months</option>
+        <option value="1y">1 year</option>
+        <option value="3y">3 years</option>
+        <option value="5y">5 years</option>
+      </select>
+      <span>View:</span>
+      <select id="view-vehicle" class="view-select">
+        <option value="level">Level</option>
+        <option value="mom">MoM %</option>
+      </select>
+    </div>
+    <div class="chart-container"><canvas id="chart-vehicle"></canvas></div>
+    <div class="table-wrap">
+      <table class="mom-table">
+        <thead>
+          <tr><th>Date</th><th class="num">Value (₹ crore)</th><th class="num">MoM change (%)</th></tr>
+        </thead>
+        <tbody id="table-vehicle-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h2 class="chart-title">2.1.2 Credit (Select Economic Indicators – 35.csv)</h2>
+    <div class="range-controls">
+      <span>Range:</span>
+      <select id="range-credit35" class="range-select">
+        <option value="all">All</option>
+        <option value="3m">3 months</option>
+        <option value="6m">6 months</option>
+        <option value="1y">1 year</option>
+        <option value="3y">3 years</option>
+        <option value="5y">5 years</option>
+      </select>
+      <span>View:</span>
+      <select id="view-credit35" class="view-select">
+        <option value="level">Level</option>
+        <option value="mom">MoM %</option>
+      </select>
+    </div>
+    <div class="chart-container"><canvas id="chart-credit35"></canvas></div>
+    <div class="table-wrap">
+      <table class="mom-table">
+        <thead>
+          <tr><th>Date</th><th class="num">Value (% yoy)</th><th class="num">MoM change (pp)</th></tr>
+        </thead>
+        <tbody id="table-credit35-body"></tbody>
+      </table>
+    </div>
+  </div>
+  </div><!-- /#tab-bank-credit -->
+
+  <div id="tab-yield-spread" class="tab-pane">
+    <p class="subtitle">Spreads from 35.csv: 4.11 91D, 4.12 182D, 4.13 364D T-Bills and 4.14 10Y G-Sec. Aligned dates only.</p>
+    <div class="yield-spread-toggle">
+      <span>Display:</span>
+      <select id="yield-spread-view">
+        <option value="level">Level (absolute spread)</option>
+        <option value="pct">% change of spread</option>
+      </select>
+    </div>
+    <div class="chart-card" id="ys-card-182_91">
+      <h2 class="chart-title">182D T-Bill − 91D T-Bill</h2>
+      <div class="range-controls">
+        <span>Range:</span>
+        <select id="range-ys-182_91" class="range-select ys-range">
+          <option value="all">All</option>
+          <option value="3m">3 months</option>
+          <option value="6m">6 months</option>
+          <option value="1y">1 year</option>
+          <option value="3y">3 years</option>
+          <option value="5y">5 years</option>
+        </select>
+      </div>
+      <div class="chart-container"><canvas id="chart-ys-182_91"></canvas></div>
+    </div>
+    <div class="chart-card" id="ys-card-364_182">
+      <h2 class="chart-title">364D T-Bill − 182D T-Bill</h2>
+      <div class="range-controls">
+        <span>Range:</span>
+        <select id="range-ys-364_182" class="range-select ys-range">
+          <option value="all">All</option>
+          <option value="3m">3 months</option>
+          <option value="6m">6 months</option>
+          <option value="1y">1 year</option>
+          <option value="3y">3 years</option>
+          <option value="5y">5 years</option>
+        </select>
+      </div>
+      <div class="chart-container"><canvas id="chart-ys-364_182"></canvas></div>
+    </div>
+    <div class="chart-card" id="ys-card-364_91">
+      <h2 class="chart-title">364D T-Bill − 91D T-Bill</h2>
+      <div class="range-controls">
+        <span>Range:</span>
+        <select id="range-ys-364_91" class="range-select ys-range">
+          <option value="all">All</option>
+          <option value="3m">3 months</option>
+          <option value="6m">6 months</option>
+          <option value="1y">1 year</option>
+          <option value="3y">3 years</option>
+          <option value="5y">5 years</option>
+        </select>
+      </div>
+      <div class="chart-container"><canvas id="chart-ys-364_91"></canvas></div>
+    </div>
+    <div class="chart-card" id="ys-card-10y_364">
+      <h2 class="chart-title">10Y G-Sec − 364D T-Bill</h2>
+      <div class="range-controls">
+        <span>Range:</span>
+        <select id="range-ys-10y_364" class="range-select ys-range">
+          <option value="all">All</option>
+          <option value="3m">3 months</option>
+          <option value="6m">6 months</option>
+          <option value="1y">1 year</option>
+          <option value="3y">3 years</option>
+          <option value="5y">5 years</option>
+        </select>
+      </div>
+      <div class="chart-container"><canvas id="chart-ys-10y_364"></canvas></div>
+    </div>
+    <div class="chart-card" id="ys-card-10y_182">
+      <h2 class="chart-title">10Y G-Sec − 182D T-Bill</h2>
+      <div class="range-controls">
+        <span>Range:</span>
+        <select id="range-ys-10y_182" class="range-select ys-range">
+          <option value="all">All</option>
+          <option value="3m">3 months</option>
+          <option value="6m">6 months</option>
+          <option value="1y">1 year</option>
+          <option value="3y">3 years</option>
+          <option value="5y">5 years</option>
+        </select>
+      </div>
+      <div class="chart-container"><canvas id="chart-ys-10y_182"></canvas></div>
+    </div>
+    <div class="chart-card" id="ys-card-10y_91">
+      <h2 class="chart-title">10Y G-Sec − 91D T-Bill</h2>
+      <div class="range-controls">
+        <span>Range:</span>
+        <select id="range-ys-10y_91" class="range-select ys-range">
+          <option value="all">All</option>
+          <option value="3m">3 months</option>
+          <option value="6m">6 months</option>
+          <option value="1y">1 year</option>
+          <option value="3y">3 years</option>
+          <option value="5y">5 years</option>
+        </select>
+      </div>
+      <div class="chart-container"><canvas id="chart-ys-10y_91"></canvas></div>
+    </div>
+  </div>
+
+  <script src="data/macro_test_data.js"></script>
+  <script src="data/yield_spreads.js"></script>
+  <script src="data/credit_35.js"></script>
+  <script>
+    (function() {
+      if (typeof window.MACRO_TEST_DATA === 'undefined') {
+        alert('macro_test_data.js not loaded');
+        return;
+      }
+
+      function windowSizeFromKey(key, total) {
+        switch (key) {
+          case '3m': return Math.min(3, total);
+          case '6m': return Math.min(6, total);
+          case '1y': return Math.min(12, total);
+          case '3y': return Math.min(36, total);
+          case '5y': return Math.min(60, total);
+          default: return total;
+        }
+      }
+
+      function initRangeChart(opts) {
+        const { canvasId, selectId, dates, values, color, label, isPercent, tableBodyId, viewSelectId } = opts;
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const fullDates = dates.slice();
+        const fullVals = values.map(v => (v == null ? null : Number(v)));
+
+        function computeMomArray(srcVals) {
+          const mom = new Array(srcVals.length).fill(null);
+          let prevVal = null;
+          let prevHasVal = false;
+          for (let i = 0; i < srcVals.length; i++) {
+            const cur = srcVals[i];
+            const hasVal = cur !== null && cur !== undefined && !Number.isNaN(cur);
+            if (hasVal && prevHasVal && prevVal !== 0) {
+              const m = ((cur - prevVal) / Math.abs(prevVal)) * 100;
+              if (!Number.isNaN(m) && Number.isFinite(m)) {
+                mom[i] = m;
+              }
+            }
+            prevHasVal = hasVal;
+            if (hasVal) prevVal = cur;
+          }
+          return mom;
+        }
+
+        const fullMom = computeMomArray(fullVals);
+
+        function currentViewKey() {
+          const sel = document.getElementById(viewSelectId);
+          return sel ? sel.value : 'level';
+        }
+
+        function sliceData() {
+          const sel = document.getElementById(selectId);
+          const rangeKey = sel ? sel.value : 'all';
+          const n = windowSizeFromKey(rangeKey, fullDates.length);
+          const start = Math.max(0, fullDates.length - n);
+          const view = currentViewKey();
+          const srcVals = view === 'mom' ? fullMom : fullVals;
+          return {
+            labels: fullDates.slice(start),
+            data: srcVals.slice(start)
+          };
+        }
+
+        function renderTable(labels, data) {
+          const tbody = document.getElementById(tableBodyId);
+          if (!tbody) return;
+          tbody.innerHTML = '';
+          let prevVal = null;
+          let prevHasVal = false;
+          for (let i = 0; i < labels.length; i++) {
+            const date = labels[i];
+            const rawVal = data[i];
+            const tr = document.createElement('tr');
+            // Validate current value
+            const hasVal = rawVal !== null && rawVal !== undefined && !Number.isNaN(rawVal);
+            const valDisplay = hasVal
+              ? (isPercent ? rawVal.toFixed(2) + '%' : rawVal.toLocaleString('en-IN'))
+              : 'N/A';
+            let momDisplay = 'N/A';
+            if (hasVal && prevHasVal && prevVal !== 0) {
+              const mom = ((rawVal - prevVal) / Math.abs(prevVal)) * 100;
+              if (!Number.isNaN(mom) && Number.isFinite(mom)) {
+                momDisplay = mom.toFixed(2) + '%';
+              }
+            }
+            tr.innerHTML =
+              '<td>' + date + '</td>' +
+              '<td class=\"num\">' + valDisplay + '</td>' +
+              '<td class=\"num\">' + momDisplay + '</td>';
+            tbody.appendChild(tr);
+            prevHasVal = hasVal;
+            if (hasVal) prevVal = rawVal;
+          }
+        }
+
+        const initial = sliceData();
+        const chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: initial.labels,
+            datasets: [{
+              label: label,
+              data: initial.data,
+              borderColor: color,
+              backgroundColor: Chart.helpers.color(color).alpha(0.15),
+              spanGaps: true,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              tension: 0.15,
+              fill: true,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: function(items) { return items[0].label || ''; },
+                  label: function(ctx) {
+                    const val = ctx.parsed.y;
+                    if (val == null || isNaN(val)) return 'No data';
+                    const view = currentViewKey();
+                    if (view === 'mom' || isPercent) {
+                      return 'Value: ' + val.toFixed(2) + '%';
+                    }
+                    return 'Value: ' + val.toLocaleString('en-IN');
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: '#8b9cb3',
+                  maxTicksLimit: 10,
+                  callback: function(value) {
+                    const lbl = this.getLabelForValue(value);
+                    const parts = lbl.split(',');
+                    return parts[0];
+                  }
+                },
+                grid: { color: 'rgba(45,58,77,0.5)' }
+              },
+              y: {
+                ticks: {
+                  color: '#8b9cb3',
+                  callback: function(value) {
+                    const view = currentViewKey();
+                    if (view === 'mom' || isPercent) {
+                      return value + '%';
+                    }
+                    return value.toLocaleString('en-IN');
+                  }
+                },
+                grid: { color: 'rgba(45,58,77,0.4)' }
+              }
+            }
+          }
+        });
+
+        const selEl = document.getElementById(selectId);
+        if (selEl) {
+          selEl.addEventListener('change', function() {
+            const sliced = sliceData();
+            chart.data.labels = sliced.labels;
+            chart.data.datasets[0].data = sliced.data;
+            chart.update();
+            renderTable(sliced.labels, sliced.data);
+          });
+        }
+        const viewSel = document.getElementById(viewSelectId);
+        if (viewSel) {
+          viewSel.addEventListener('change', function() {
+            const sliced = sliceData();
+            chart.data.labels = sliced.labels;
+            chart.data.datasets[0].data = sliced.data;
+            chart.update();
+            renderTable(sliced.labels, sliced.data);
+          });
+        }
+        // Initial table render
+        renderTable(initial.labels, initial.data);
+      }
+
+      const macro = window.MACRO_TEST_DATA;
+      function getSeries(keySub) {
+        return macro.series.find(s => s.key.indexOf(keySub) !== -1);
+      }
+
+      const gbc = getSeries('Gross Bank Credit (II+III)');
+      if (gbc) {
+        initRangeChart({
+          canvasId: 'chart-gbc',
+          selectId: 'range-gbc',
+          viewSelectId: 'view-gbc',
+          dates: macro.dates,
+          values: gbc.values,
+          color: '#58a6ff',
+          label: gbc.label,
+          isPercent: false,
+          tableBodyId: 'table-gbc-body'
+        });
+      }
+
+      const nbfc = getSeries('Non-Banking Financial Companies (NBFCs)');
+      if (nbfc) {
+        initRangeChart({
+          canvasId: 'chart-nbfc',
+          selectId: 'range-nbfc',
+          viewSelectId: 'view-nbfc',
+          dates: macro.dates,
+          values: nbfc.values,
+          color: '#f97316',
+          label: nbfc.label,
+          isPercent: false,
+          tableBodyId: 'table-nbfc-body'
+        });
+      }
+
+      const housing = getSeries('Housing');
+      if (housing) {
+        initRangeChart({
+          canvasId: 'chart-housing',
+          selectId: 'range-housing',
+          viewSelectId: 'view-housing',
+          dates: macro.dates,
+          values: housing.values,
+          color: '#22c55e',
+          label: housing.label,
+          isPercent: false,
+          tableBodyId: 'table-housing-body'
+        });
+      }
+
+      const vehicle = getSeries('Vehicle Loans');
+      if (vehicle) {
+        initRangeChart({
+          canvasId: 'chart-vehicle',
+          selectId: 'range-vehicle',
+          viewSelectId: 'view-vehicle',
+          dates: macro.dates,
+          values: vehicle.values,
+          color: '#a855f7',
+          label: vehicle.label,
+          isPercent: false,
+          tableBodyId: 'table-vehicle-body'
+        });
+      }
+
+      if (typeof window.CREDIT_35 !== 'undefined') {
+        const c = window.CREDIT_35;
+        // Ensure ascending chronological order (earliest -> latest)
+        const ascDates = c.dates.slice().reverse();
+        const ascVals = c.values.slice().reverse();
+        initRangeChart({
+          canvasId: 'chart-credit35',
+          selectId: 'range-credit35',
+          viewSelectId: 'view-credit35',
+          dates: ascDates,
+          values: ascVals,
+          color: '#ec4899',
+          label: '2.1.2 Credit (% change, 35.csv)',
+          isPercent: true,
+          tableBodyId: 'table-credit35-body'
+        });
+      }
+
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var tab = this.getAttribute('data-tab');
+          document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+          document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+          this.classList.add('active');
+          var pane = document.getElementById('tab-' + tab);
+          if (pane) pane.classList.add('active');
+        });
+      });
+
+      // Yield Spread tab: 6 charts, level vs % change toggle
+      function windowSizeFromKeyYS(key, total) {
+        switch (key) {
+          case '3m': return Math.min(3, total);
+          case '6m': return Math.min(6, total);
+          case '1y': return Math.min(12, total);
+          case '3y': return Math.min(36, total);
+          case '5y': return Math.min(60, total);
+          default: return total;
+        }
+      }
+      var ysCharts = {};
+      if (typeof window.YIELD_SPREADS !== 'undefined') {
+        var YS = window.YIELD_SPREADS;
+        var ysColors = ['#58a6ff', '#f97316', '#22c55e', '#a855f7', '#ec4899', '#eab308'];
+        YS.spreads.forEach(function(s, idx) {
+          var canvasId = 'chart-ys-' + s.key;
+          var rangeId = 'range-ys-' + s.key;
+          var canvas = document.getElementById(canvasId);
+          var rangeSel = document.getElementById(rangeId);
+          if (!canvas) return;
+          var fullDates = YS.dates.slice();
+          var fullLevel = s.level.slice();
+          var fullPct = s.pctChange.slice();
+          function ysViewKey() {
+            var sel = document.getElementById('yield-spread-view');
+            return sel ? sel.value : 'level';
+          }
+          function sliceYS() {
+            var rangeKey = rangeSel ? rangeSel.value : 'all';
+            var n = windowSizeFromKeyYS(rangeKey, fullDates.length);
+            var start = Math.max(0, fullDates.length - n);
+            var view = ysViewKey();
+            var src = view === 'pct' ? fullPct : fullLevel;
+            return {
+              labels: fullDates.slice(start),
+              data: src.slice(start)
+            };
+          }
+          var initial = sliceYS();
+          ysCharts[s.key] = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+              labels: initial.labels,
+              datasets: [{
+                label: s.label,
+                data: initial.data,
+                borderColor: ysColors[idx % ysColors.length],
+                backgroundColor: Chart.helpers.color(ysColors[idx % ysColors.length]).alpha(0.15),
+                spanGaps: true,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.15,
+                fill: true
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: 'index', intersect: false },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    title: function(items) { return items[0].label || ''; },
+                    label: function(ctx) {
+                      var val = ctx.parsed.y;
+                      if (val == null || isNaN(val)) return 'No data';
+                      return ysViewKey() === 'pct' ? (val.toFixed(2) + '%') : ('Spread: ' + val.toFixed(3));
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    color: '#8b9cb3',
+                    maxTicksLimit: 10,
+                    callback: function(value) {
+                      var lbl = this.getLabelForValue(value);
+                      var parts = lbl.split(',');
+                      return parts[0];
+                    }
+                  },
+                  grid: { color: 'rgba(45,58,77,0.5)' }
+                },
+                y: {
+                  ticks: {
+                    color: '#8b9cb3',
+                    callback: function(value) {
+                      return ysViewKey() === 'pct' ? (value + '%') : value.toFixed(2);
+                    }
+                  },
+                  grid: { color: 'rgba(45,58,77,0.4)' }
+                }
+              }
+            }
+          });
+          if (rangeSel) {
+            rangeSel.addEventListener('change', function() {
+              var sliced = sliceYS();
+              ysCharts[s.key].data.labels = sliced.labels;
+              ysCharts[s.key].data.datasets[0].data = sliced.data;
+              ysCharts[s.key].update();
+            });
+          }
+        });
+        document.getElementById('yield-spread-view').addEventListener('change', function() {
+          YS.spreads.forEach(function(s) {
+            if (!ysCharts[s.key]) return;
+            var sliced = {
+              labels: ysCharts[s.key].data.labels.slice(),
+              data: (function() {
+                var rangeSel = document.getElementById('range-ys-' + s.key);
+                var rangeKey = rangeSel ? rangeSel.value : 'all';
+                var n = windowSizeFromKeyYS(rangeKey, YS.dates.length);
+                var start = Math.max(0, YS.dates.length - n);
+                var view = document.getElementById('yield-spread-view').value;
+                var src = view === 'pct' ? s.pctChange : s.level;
+                return src.slice(start);
+              })()
+            };
+            ysCharts[s.key].data.datasets[0].data = sliced.data;
+            ysCharts[s.key].update();
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
