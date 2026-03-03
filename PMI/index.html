@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>India Manufacturing PMI – HP Filter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+      background: #f0f2f5;
+    }
+    .card {
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      max-width: 1200px;
+      margin: 0 auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,.06);
+    }
+    h1 { font-size: 1.5rem; color: #1a1a2e; margin-bottom: 4px; }
+    .sub { color: #666; font-size: 0.9rem; margin-bottom: 16px; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    label { font-size: 14px; color: #444; }
+    input[type="number"] {
+      width: 120px;
+      padding: 6px 8px;
+      margin-left: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button.primary {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #2d6cdf;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button.primary:hover { background: #2356b8; }
+
+    #status { margin-top: 8px; font-size: 13px; color: #666; }
+    .error { color: #c0392b; }
+
+    #tableWrapNormal, #tableWrapHP {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 100%;
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      text-align: right;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+      text-align: left;
+    }
+    th.num, td.num { text-align: right; }
+
+    .chart-wrap { margin-top: 24px; }
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chart-title { font-size: 14px; font-weight: 600; color: #333; }
+    .chart-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .chart-hint, .zoom-hint { font-size: 11px; color: #999; }
+    .chart-controls button {
+      padding: 6px 12px; border: 1px solid #ccc; background: #f8f9fa; color: #444;
+      border-radius: 6px; cursor: pointer; font-size: 12px;
+    }
+    .chart-controls button:hover { background: #e8e8e8; }
+    .chart-container { position: relative; display: block; }
+    canvas {
+      display: block;
+      width: 100%;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: #fafafa;
+      cursor: crosshair;
+    }
+    .chart-tooltip {
+      position: absolute; display: none; background: rgba(30,30,30,0.95); color: #fff;
+      padding: 10px 14px; border-radius: 6px; font-size: 12px; pointer-events: none;
+      z-index: 10; max-width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .legend {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #555;
+    }
+    .legend span { margin-right: 16px; }
+    .chart-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .chart-overlay.active { display: flex; }
+    .chart-overlay-inner {
+      background: #fff; border-radius: 12px; padding: 20px;
+      width: 96vw; max-height: 94vh; overflow: auto; position: relative;
+    }
+    .chart-overlay-inner canvas { width: 100%; }
+    .chart-overlay-close {
+      position: absolute; top: 12px; right: 14px; font-size: 22px;
+      cursor: pointer; color: #555; line-height: 1; background: none; border: none;
+    }
+    .chart-overlay-close:hover { color: #000; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>India Manufacturing PMI – HP Filter</h1>
+    <p class="sub">
+      Loads <strong>india_manufacturing_pmi.csv</strong>, applies the Hodrick–Prescott (HP) filter,
+      and plots the <strong>original PMI</strong> series and its <strong>trend</strong>.
+      Both the <strong>normal table</strong> and the <strong>HP table (trend + cycle)</strong> are shown below.
+    </p>
+
+    <div class="controls">
+      <div>
+        <label for="lambdaInput">HP λ (smoothing parameter)</label>
+        <input id="lambdaInput" type="number" min="1" step="100" value="1600" />
+      </div>
+      <button class="primary" id="btnRecompute">Recompute HP filter</button>
+    </div>
+
+    <div id="status">Loading CSV…</div>
+
+    <div class="chart-wrap">
+      <div class="chart-header">
+        <div class="chart-title">PMI series and HP trend</div>
+        <div class="chart-controls">
+          <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
+          <button type="button" id="btnExpandChart">⛶ Expand</button>
+          <button type="button" id="btnResetZoom">↺ Reset</button>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="pmiChart" width="1100" height="380"></canvas>
+        <div id="pmiTooltip" class="chart-tooltip"></div>
+      </div>
+      <div class="legend">
+        <span style="color:#2d6cdf;"><strong>●</strong> PMI (original)</span>
+        <span style="color:#f39c12;"><strong>—</strong> HP trend</span>
+      </div>
+    </div>
+
+    <div class="chart-overlay" id="chartOverlay">
+      <div class="chart-overlay-inner">
+        <button type="button" class="chart-overlay-close" id="btnCloseOverlay" aria-label="Close">✕</button>
+        <div class="chart-header" style="margin-bottom:12px">
+          <div class="chart-title">PMI series and HP trend</div>
+          <div class="chart-controls">
+            <span class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</span>
+            <button type="button" id="btnResetZoomOverlay">↺ Reset</button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="pmiChartOverlay" width="1600" height="700"></canvas>
+          <div id="pmiTooltipOverlay" class="chart-tooltip"></div>
+        </div>
+        <div class="legend" style="margin-top:8px">
+          <span style="color:#2d6cdf;"><strong>●</strong> PMI (original)</span>
+          <span style="color:#f39c12;"><strong>—</strong> HP trend</span>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px;font-size:1rem;">Normal table (raw PMI)</h3>
+    <div id="tableWrapNormal"></div>
+
+    <h3 style="margin-top:24px;font-size:1rem;">HP filter table (PMI, trend, cycle)</h3>
+    <div id="tableWrapHP"></div>
+  </div>
+
+  <script>
+    function parseCSV(text) {
+      const rows = [];
+      const lines = text.split(/\r?\n/);
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const row = [];
+        let inQuotes = false;
+        let cell = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { inQuotes = !inQuotes; continue; }
+          if (!inQuotes && c === ',') { row.push(cell); cell = ''; continue; }
+          if (inQuotes && (c === '\r' || c === '\n')) continue;
+          cell += c;
+        }
+        row.push(cell);
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function parseNum(s) {
+      if (s == null || s === '') return NaN;
+      s = String(s).trim().replace(/^\+/, '').replace(/,/g, '');
+      const v = parseFloat(s);
+      return isNaN(v) ? NaN : v;
+    }
+
+    function zeros(n, m) {
+      return Array.from({ length: n }, () => Array(m || n).fill(0));
+    }
+
+    function invertMatrix(A) {
+      const n = A.length;
+      const I = zeros(n, n);
+      for (let i = 0; i < n; i++) I[i][i] = 1;
+      const M = A.map(r => r.slice());
+      for (let i = 0; i < n; i++) {
+        let d = M[i][i];
+        if (Math.abs(d) < 1e-12) throw new Error('Singular matrix');
+        for (let j = 0; j < n; j++) { M[i][j] /= d; I[i][j] /= d; }
+        for (let k = 0; k < n; k++) {
+          if (k === i) continue;
+          const f = M[k][i];
+          for (let j = 0; j < n; j++) {
+            M[k][j] -= f * M[i][j];
+            I[k][j] -= f * I[i][j];
+          }
+        }
+      }
+      return I;
+    }
+
+    function matVec(A, v) {
+      return A.map(r => r.reduce((s, val, i) => s + val * v[i], 0));
+    }
+
+    function hpFilter(y, lambda) {
+      const T = y.length;
+      const I = zeros(T, T);
+      for (let i = 0; i < T; i++) I[i][i] = 1;
+      const D = zeros(T - 2, T);
+      for (let t = 0; t < T - 2; t++) {
+        D[t][t] = 1;
+        D[t][t + 1] = -2;
+        D[t][t + 2] = 1;
+      }
+      const Dt = zeros(T, T - 2);
+      for (let i = 0; i < T; i++)
+        for (let j = 0; j < T - 2; j++)
+          Dt[i][j] = D[j][i];
+      const DtD = zeros(T, T);
+      for (let i = 0; i < T; i++)
+        for (let j = 0; j < T; j++) {
+          let s = 0;
+          for (let k = 0; k < T - 2; k++) s += Dt[i][k] * D[k][j];
+          DtD[i][j] = s;
+        }
+      const A = zeros(T, T);
+      for (let i = 0; i < T; i++)
+        for (let j = 0; j < T; j++)
+          A[i][j] = I[i][j] + lambda * DtD[i][j];
+      const trend = matVec(invertMatrix(A), y);
+      const cycle = y.map((v, i) => v - trend[i]);
+      return { trend, cycle };
+    }
+
+    function formatNum(x) {
+      if (x == null || Number.isNaN(x)) return "—";
+      return x.toFixed(4);
+    }
+
+    function renderNormalTable(dates, values) {
+      const wrap = document.getElementById("tableWrapNormal");
+      let html = "<table><thead><tr>" +
+        "<th>Date</th><th class='num'>PMI</th>" +
+        "</tr></thead><tbody>";
+      for (let i = 0; i < dates.length; i++) {
+        html += `<tr><td>${dates[i]}</td><td class="num">${values[i].toFixed(4)}</td></tr>`;
+      }
+      html += "</tbody></table>";
+      wrap.innerHTML = html;
+    }
+
+    function renderHPTable(dates, y, trend, cycle) {
+      const wrap = document.getElementById("tableWrapHP");
+      let html = "<table><thead><tr>" +
+        "<th>Date</th><th class='num'>PMI</th><th class='num'>Trend</th><th class='num'>Cycle</th>" +
+        "</tr></thead><tbody>";
+      for (let i = 0; i < dates.length; i++) {
+        html += "<tr>" +
+          `<td>${dates[i]}</td>` +
+          `<td class="num">${y[i].toFixed(4)}</td>` +
+          `<td class="num">${formatNum(trend[i])}</td>` +
+          `<td class="num">${formatNum(cycle[i])}</td>` +
+          "</tr>";
+      }
+      html += "</tbody></table>";
+      wrap.innerHTML = html;
+    }
+
+    const zoomState = {};
+    let chartDataCache = {};
+
+    function getZoom(canvasId) {
+      if (!zoomState[canvasId]) zoomState[canvasId] = { start: 0, end: 1 };
+      return zoomState[canvasId];
+    }
+
+    function drawChart(canvasId, dates, y, trend) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#fafafa";
+      ctx.fillRect(0, 0, w, h);
+
+      if (!y || !y.length) return;
+
+      const n = y.length;
+      const zoom = getZoom(canvasId);
+      const visStart = Math.max(0, Math.floor(zoom.start * (n - 1)));
+      const visEnd = Math.min(n - 1, Math.ceil(zoom.end * (n - 1)));
+      const visLen = Math.max(1, visEnd - visStart + 1);
+
+      const pad = { top: 30, right: 30, bottom: 60, left: 70 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+
+      const visY = [];
+      const visT = [];
+      for (let i = visStart; i <= visEnd; i++) {
+        visY.push(y[i]);
+        visT.push(trend[i]);
+      }
+      let minY = Math.min(...visY, ...visT);
+      let maxY = Math.max(...visY, ...visT);
+      if (!isFinite(minY) || !isFinite(maxY)) {
+        minY = Math.min(...y);
+        maxY = Math.max(...y);
+      }
+      const margin = (maxY - minY || 1) * 0.06;
+      minY -= margin;
+      maxY += margin;
+      const range = maxY - minY || 1;
+
+      const scaleX = (i) => {
+        if (visLen <= 1) return pad.left + plotW / 2;
+        return pad.left + ((i - visStart) / (visLen - 1)) * plotW;
+      };
+      const scaleY = (val) =>
+        pad.top + plotH - ((val - minY) / range) * plotH;
+
+      chartDataCache[canvasId] = {
+        pad, plotW, plotH, scaleX, scaleY, minY, maxY,
+        dates, y, trend, n, visStart, visEnd, visLen
+      };
+
+      const numTicks = 5;
+      ctx.strokeStyle = "#e8e8e8";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= numTicks; i++) {
+        const py = pad.top + (plotH * i) / numTicks;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, py);
+        ctx.lineTo(w - pad.right, py);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#333";
+      ctx.font = "12px Arial";
+      ctx.textAlign = "right";
+      for (let i = 0; i <= numTicks; i++) {
+        const val = minY + (range * (numTicks - i)) / numTicks;
+        const py = pad.top + (plotH * i) / numTicks + 4;
+        ctx.fillText(val.toFixed(2), pad.left - 8, py);
+      }
+
+      ctx.save();
+      ctx.translate(18, pad.top + plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = "center";
+      ctx.fillText("PMI (points)", 0, 0);
+      ctx.restore();
+
+      const approxLabelW = 80;
+      const maxLabels = Math.max(1, Math.floor(plotW / approxLabelW));
+      const step = Math.max(1, Math.ceil(visLen / maxLabels));
+      ctx.textAlign = "right";
+      for (let i = visStart; i <= visEnd; i += step) {
+        const x = scaleX(i);
+        const label = dates[i];
+        ctx.save();
+        ctx.translate(x, h - pad.bottom + 10);
+        ctx.rotate(-Math.PI / 4);
+        ctx.fillText(label, 0, 0);
+        ctx.restore();
+      }
+
+      ctx.textAlign = "center";
+      ctx.fillText("Date", pad.left + plotW / 2, h - 6);
+
+      // PMI line
+      ctx.strokeStyle = "#2d6cdf";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = visStart; i <= visEnd; i++) {
+        const x = scaleX(i);
+        const yy = scaleY(y[i]);
+        if (i === visStart) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+
+      // HP trend line
+      ctx.strokeStyle = "#f39c12";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 3]);
+      ctx.beginPath();
+      for (let i = visStart; i <= visEnd; i++) {
+        const x = scaleX(i);
+        const yy = scaleY(trend[i]);
+        if (i === visStart) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Data point circles
+      const r = 3;
+      ctx.fillStyle = "#2d6cdf";
+      for (let i = visStart; i <= visEnd; i++) {
+        ctx.beginPath();
+        ctx.arc(scaleX(i), scaleY(y[i]), r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#f39c12";
+      for (let i = visStart; i <= visEnd; i++) {
+        ctx.beginPath();
+        ctx.arc(scaleX(i), scaleY(trend[i]), r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function redrawChart(canvasId) {
+      if (!pmiValues.length) return;
+      drawChart(canvasId, pmiDates, pmiValues, hpTrend);
+    }
+
+    function setupChartInteraction(canvasId, tooltipId) {
+      const canvas = document.getElementById(canvasId);
+      const tooltip = document.getElementById(tooltipId);
+      if (!canvas || !tooltip) return;
+
+      let dragStart = null;
+      let dragZoom = null;
+
+      function getIdx(clientX) {
+        const data = chartDataCache[canvasId];
+        if (!data) return null;
+        const rect = canvas.getBoundingClientRect();
+        const scale = canvas.width / rect.width;
+        const x = (clientX - rect.left) * scale;
+        const frac = (x - data.pad.left) / data.plotW;
+        return Math.max(0, Math.min(1, frac));
+      }
+
+      canvas.addEventListener("mousemove", (e) => {
+        const data = chartDataCache[canvasId];
+        if (!data || !data.dates) return;
+        const rect = canvas.getBoundingClientRect();
+        const scale = canvas.width / rect.width;
+        const x = (e.clientX - rect.left) * scale;
+        if (x < data.pad.left || x > canvas.width - data.pad.right) {
+          tooltip.style.display = "none";
+          return;
+        }
+        const fracInView = (x - data.pad.left) / data.plotW;
+        const idxFloat = data.visStart + fracInView * (data.visLen - 1);
+        const idx = Math.max(data.visStart, Math.min(data.visEnd, Math.round(idxFloat)));
+        const date = data.dates[idx];
+        const pmiVal = data.y[idx];
+        const trendVal = data.trend[idx];
+        tooltip.innerHTML =
+          "<strong>" + date + "</strong><br>" +
+          "<span style='color:#2d6cdf'>● PMI: " + (pmiVal != null ? pmiVal.toFixed(4) : "—") + "</span><br>" +
+          "<span style='color:#f39c12'>— Trend: " + (trendVal != null ? trendVal.toFixed(4) : "—") + "</span>";
+        tooltip.style.display = "block";
+        tooltip.style.left = (e.clientX - rect.left + 15) + "px";
+        tooltip.style.top = (e.clientY - rect.top + 15) + "px";
+
+        if (dragStart !== null) {
+          const frac = getIdx(e.clientX);
+          const delta = dragStart - frac;
+          const z = dragZoom;
+          const span = z.end - z.start;
+          let ns = Math.max(0, z.start + delta);
+          let ne = ns + span;
+          if (ne > 1) { ne = 1; ns = 1 - span; }
+          zoomState[canvasId] = { start: ns, end: ne };
+          redrawChart(canvasId);
+          dragStart = frac;
+          dragZoom = { ...zoomState[canvasId] };
+        }
+      });
+
+      canvas.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+
+      canvas.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const frac = getIdx(e.clientX);
+        if (frac === null) return;
+        const z = getZoom(canvasId);
+        const span = z.end - z.start;
+        const factor = e.deltaY > 0 ? 1.15 : 0.87;
+        let newSpan = Math.min(1, Math.max(0.02, span * factor));
+        let ns = frac - (frac - z.start) * (newSpan / span);
+        let ne = ns + newSpan;
+        if (ns < 0) { ns = 0; ne = newSpan; }
+        if (ne > 1) { ne = 1; ns = 1 - newSpan; }
+        zoomState[canvasId] = { start: ns, end: ne };
+        redrawChart(canvasId);
+      }, { passive: false });
+
+      canvas.addEventListener("mousedown", (e) => {
+        dragStart = getIdx(e.clientX);
+        dragZoom = { ...getZoom(canvasId) };
+        canvas.style.cursor = "grabbing";
+      });
+      window.addEventListener("mouseup", () => {
+        dragStart = null;
+        dragZoom = null;
+        if (canvas) canvas.style.cursor = "crosshair";
+      });
+
+      canvas.addEventListener("dblclick", () => {
+        zoomState[canvasId] = { start: 0, end: 1 };
+        redrawChart(canvasId);
+      });
+    }
+
+    function resetZoom(canvasId) {
+      zoomState[canvasId] = { start: 0, end: 1 };
+      redrawChart(canvasId);
+    }
+
+    function expandChart() {
+      document.getElementById("chartOverlay").classList.add("active");
+      zoomState["pmiChartOverlay"] = { ...getZoom("pmiChart") };
+      redrawChart("pmiChartOverlay");
+    }
+
+    function closeOverlay() {
+      document.getElementById("chartOverlay").classList.remove("active");
+    }
+
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeOverlay(); });
+
+    let pmiDates = [];
+    let pmiValues = [];
+    let hpTrend = [];
+    let hpCycle = [];
+
+    async function loadAndCompute() {
+      const status = document.getElementById("status");
+      try {
+        status.textContent = "Loading india_manufacturing_pmi.csv…";
+        const resp = await fetch("india_manufacturing_pmi.csv");
+        if (!resp.ok) {
+          status.innerHTML = "<span class='error'>Could not load india_manufacturing_pmi.csv (HTTP " +
+            resp.status + ")</span>";
+          return;
+        }
+        const text = await resp.text();
+        const rows = parseCSV(text);
+        if (rows.length <= 1) {
+          status.innerHTML = "<span class='error'>CSV seems empty.</span>";
+          return;
+        }
+
+        const dataRows = rows.slice(1);
+        pmiDates = [];
+        pmiValues = [];
+        for (const r of dataRows) {
+          if (r.length < 3) continue;
+          const date = r[1].trim();
+          const val = parseNum(r[2]);
+          if (!date || Number.isNaN(val)) continue;
+          pmiDates.push(date);
+          pmiValues.push(val);
+        }
+
+        if (!pmiDates.length) {
+          status.innerHTML = "<span class='error'>No valid rows found in CSV.</span>";
+          return;
+        }
+
+        status.textContent = "Loaded " + pmiDates.length + " observations. Computing HP filter…";
+        recomputeHP();
+        status.textContent = "Loaded " + pmiDates.length +
+          " observations. HP filter computed. You can adjust λ and press \"Recompute HP filter\".";
+      } catch (e) {
+        console.error(e);
+        status.innerHTML =
+          "<span class='error'>Error loading or processing data: " + e.message + "</span>";
+      }
+    }
+
+    function recomputeHP() {
+      if (!pmiValues.length) return;
+      const lambdaInput = document.getElementById("lambdaInput");
+      let lambda = parseFloat(lambdaInput.value);
+      if (!isFinite(lambda) || lambda <= 0) lambda = 1600;
+      lambdaInput.value = lambda;
+
+      const { trend, cycle } = hpFilter(pmiValues, lambda);
+      hpTrend = trend;
+      hpCycle = cycle;
+
+      renderNormalTable(pmiDates, pmiValues);
+      renderHPTable(pmiDates, pmiValues, hpTrend, hpCycle);
+      redrawChart("pmiChart");
+      if (document.getElementById("chartOverlay").classList.contains("active")) {
+        redrawChart("pmiChartOverlay");
+      }
+    }
+
+    document.getElementById("btnRecompute").addEventListener("click", () => {
+      recomputeHP();
+    });
+
+    document.getElementById("btnExpandChart").addEventListener("click", expandChart);
+    document.getElementById("btnResetZoom").addEventListener("click", () => resetZoom("pmiChart"));
+    document.getElementById("btnResetZoomOverlay").addEventListener("click", () => resetZoom("pmiChartOverlay"));
+    document.getElementById("btnCloseOverlay").addEventListener("click", closeOverlay);
+
+    setupChartInteraction("pmiChart", "pmiTooltip");
+    setupChartInteraction("pmiChartOverlay", "pmiTooltipOverlay");
+
+    loadAndCompute();
+  </script>
+</body>
+</html>
+
