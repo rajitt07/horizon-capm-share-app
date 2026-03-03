@@ -7,6 +7,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <script>
+    if (typeof Chart !== "undefined" && typeof ChartZoom !== "undefined") Chart.register(ChartZoom);
+  </script>
   <style>
     :root {
       --bg: #0f1419;
@@ -271,74 +274,89 @@
     var data = chronological.map(function(r) { return r.index; });
     if (!chart) {
       var ctx = document.getElementById("sci-chart").getContext("2d");
-      chart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [{
-            label: "Simple Composite Index",
-            data: data,
-            borderColor: "#58a6ff",
-            backgroundColor: "rgba(88, 166, 255, 0.1)",
-            fill: true,
-            tension: 0.2,
-            pointRadius: 0,
-            pointHoverRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { intersect: false, mode: "index" },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: "rgba(26, 35, 50, 0.95)",
-              titleColor: "#e6edf3",
-              bodyColor: "#e6edf3",
-              borderColor: "#2d3a4d",
-              borderWidth: 1,
-              padding: 10,
-              callbacks: {
-                title: function(items) {
-                  var i = items[0] && items[0].dataIndex;
-                  if (i == null || !chart.chronicologicalData) return "";
-                  return chart.chronicologicalData[i].date;
-                },
-                label: function(ctx) {
-                  var i = ctx.dataIndex;
-                  var val = ctx.parsed.y;
-                  return "Index: " + fmtNum(val, 4);
-                }
-              }
-            },
-            zoom: {
-              limits: { x: { min: "original", max: "original" }, y: { min: "original", max: "original" } },
-              zoom: {
-                wheel: { enabled: true },
-                pinch: { enabled: true },
-                mode: "xy"
+      var zoomOpts = {
+        limits: { x: { min: "original", max: "original" }, y: { min: "original", max: "original" } },
+        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "xy" },
+        pan: { enabled: true, mode: "xy" }
+      };
+      var opts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: "index" },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(26, 35, 50, 0.95)",
+            titleColor: "#e6edf3",
+            bodyColor: "#e6edf3",
+            borderColor: "#2d3a4d",
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              title: function(items) {
+                var i = items[0] && items[0].dataIndex;
+                if (i == null || !chart.chronicologicalData) return "";
+                return chart.chronicologicalData[i].date;
               },
-              pan: {
-                enabled: true,
-                mode: "xy"
+              label: function(ctx) {
+                var val = ctx.parsed.y;
+                return "Index: " + fmtNum(val, 4);
               }
-            }
-          },
-          scales: {
-            x: {
-              grid: { color: "rgba(45, 58, 77, 0.6)" },
-              ticks: { color: "#8b9cb3", maxTicksLimit: 12 }
-            },
-            y: {
-              grid: { color: "rgba(45, 58, 77, 0.6)" },
-              ticks: { color: "#8b9cb3" },
-              min: function(c) { return Math.max(0, c.min - 2); },
-              max: function(c) { return Math.min(150, c.max + 2); }
             }
           }
+        },
+        scales: {
+          x: {
+            grid: { color: "rgba(45, 58, 77, 0.6)" },
+            ticks: { color: "#8b9cb3", maxTicksLimit: 12 }
+          },
+          y: {
+            grid: { color: "rgba(45, 58, 77, 0.6)" },
+            ticks: { color: "#8b9cb3" },
+            min: function(c) { return Math.max(0, c.min - 2); },
+            max: function(c) { return Math.min(150, c.max + 2); }
+          }
         }
-      });
+      };
+      opts.plugins.zoom = zoomOpts;
+      try {
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Simple Composite Index",
+              data: data,
+              borderColor: "#58a6ff",
+              backgroundColor: "rgba(88, 166, 255, 0.1)",
+              fill: true,
+              tension: 0.2,
+              pointRadius: 0,
+              pointHoverRadius: 6
+            }]
+          },
+          options: opts
+        });
+      } catch (err) {
+        delete opts.plugins.zoom;
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Simple Composite Index",
+              data: data,
+              borderColor: "#58a6ff",
+              backgroundColor: "rgba(88, 166, 255, 0.1)",
+              fill: true,
+              tension: 0.2,
+              pointRadius: 0,
+              pointHoverRadius: 6
+            }]
+          },
+          options: opts
+        });
+      }
     }
     chart.chronicologicalData = chronological;
     chart.data.labels = labels;
