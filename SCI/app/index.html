@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Composite Index (SCI)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4d;
+      --text: #e6edf3;
+      --muted: #8b9cb3;
+      --accent: #58a6ff;
+      --index-high: #3fb950;
+      --index-low: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "SF Mono", "Consolas", "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin: 0 0 0.25rem 0;
+      letter-spacing: -0.02em;
+    }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
+    .formula-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .formula-box strong { color: var(--text); }
+    .formula-box .eq { margin: 0.35rem 0; }
+    .weights-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .weights-section label { color: var(--muted); font-size: 0.85rem; }
+    .weight-inp {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      width: 4rem;
+      text-align: right;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .controls label { color: var(--muted); font-size: 0.85rem; }
+    .controls input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      width: 12rem;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { color: var(--accent); }
+    th.sorted-asc::after { content: " ▲"; font-size: 0.7em; color: var(--accent); }
+    th.sorted-desc::after { content: " ▼"; font-size: 0.7em; color: var(--accent); }
+    td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(88, 166, 255, 0.06); }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.index { font-weight: 600; }
+    td.index.high { color: var(--index-high); }
+    td.index.low { color: var(--index-low); }
+    .foot { margin-top: 1rem; color: var(--muted); font-size: 0.8rem; }
+    .chart-wrap {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      max-width: 900px;
+      height: 340px;
+    }
+    .chart-wrap h3 { margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <h1>Simple Composite Index</h1>
+  <p class="subtitle">Components: Index of Industrial Production, Credit, Broad Money (M3), 10-Year G-Sec (FBIL). Weights below; mean = 100.</p>
+
+  <div class="formula-box">
+    <strong>How the index is computed</strong>
+    <div class="eq">1. Z-score each series: z = (x − mean) / std</div>
+    <div class="eq">2. Raw index = w₁×z_IIP + w₂×z_Credit + w₃×z_M3 + w₄×z_10Y</div>
+    <div class="eq">3. Simple Composite Index = 100 + (Raw index − mean(Raw index))</div>
+  </div>
+
+  <div class="weights-section">
+    <label>Weights (coefficients):</label>
+    <label for="w-iip">IIP</label>
+    <input type="number" id="w-iip" class="weight-inp" min="0" max="1" step="0.05" value="0.25" />
+    <label for="w-credit">Credit</label>
+    <input type="number" id="w-credit" class="weight-inp" min="0" max="1" step="0.05" value="0.25" />
+    <label for="w-m3">M3</label>
+    <input type="number" id="w-m3" class="weight-inp" min="0" max="1" step="0.05" value="0.25" />
+    <label for="w-gsec">10Y G-Sec</label>
+    <input type="number" id="w-gsec" class="weight-inp" min="0" max="1" step="0.05" value="0.25" />
+    <span class="foot" id="weight-sum"></span>
+  </div>
+
+  <div class="controls">
+    <label for="filter">Filter by date (e.g. 2024):</label>
+    <input type="text" id="filter" placeholder="Optional filter..." />
+  </div>
+
+  <div class="table-wrap">
+    <table id="sci-table">
+      <thead><tr id="header-row"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+  <p class="foot" id="foot"></p>
+
+  <div class="chart-wrap">
+    <h3>Simple Composite Index over time — scroll or pinch to zoom, drag to pan; double-click to reset</h3>
+    <canvas id="sci-chart"></canvas>
+  </div>
+
+  <script src="data/data.js"></script>
+  <script>
+(function() {
+  if (typeof window.SCI_DATA === "undefined") {
+    document.getElementById("body").innerHTML = "<tr><td colspan='6' style='padding:1.5rem; color: var(--muted);'>No data. Run <code>python build_index.py</code> from the repo root.</td></tr>";
+    return;
+  }
+  var rows = window.SCI_DATA.rows;
+  var sortCol = "date";
+  var sortDir = -1;
+  var chart = null;
+
+  function getWeights() {
+    var w1 = parseFloat(document.getElementById("w-iip").value) || 0;
+    var w2 = parseFloat(document.getElementById("w-credit").value) || 0;
+    var w3 = parseFloat(document.getElementById("w-m3").value) || 0;
+    var w4 = parseFloat(document.getElementById("w-gsec").value) || 0;
+    return [w1, w2, w3, w4];
+  }
+  function updateWeightSum() {
+    var w = getWeights();
+    var s = w[0] + w[1] + w[2] + w[3];
+    document.getElementById("weight-sum").textContent = "Sum = " + s.toFixed(2) + (Math.abs(s - 1) > 0.01 ? " (need not be 1)" : "");
+  }
+  function zscore(arr) {
+    var n = arr.length, sum = 0, sum2 = 0;
+    for (var i = 0; i < n; i++) { sum += arr[i]; sum2 += arr[i] * arr[i]; }
+    var mu = sum / n, v = sum2 / n - mu * mu, std = Math.sqrt(v > 0 ? v : 0) || 1;
+    return arr.map(function(x) { return (x - mu) / std; });
+  }
+  function computeIndex(rows, weights) {
+    var w1 = weights[0], w2 = weights[1], w3 = weights[2], w4 = weights[3];
+    var iip = rows.map(function(r) { return r.iip; });
+    var credit = rows.map(function(r) { return r.credit; });
+    var m3 = rows.map(function(r) { return r.m3; });
+    var gsec = rows.map(function(r) { return r.gsec; });
+    var ziip = zscore(iip), zcredit = zscore(credit), zm3 = zscore(m3), zgsec = zscore(gsec);
+    var raw = [];
+    for (var i = 0; i < rows.length; i++) {
+      raw.push(w1 * ziip[i] + w2 * zcredit[i] + w3 * zm3[i] + w4 * zgsec[i]);
+    }
+    var meanRaw = raw.reduce(function(a, b) { return a + b; }, 0) / raw.length;
+    return raw.map(function(r) { return 100 + (r - meanRaw); });
+  }
+  function fmtDate(s) {
+    var d = new Date(s);
+    return isNaN(d) ? s : d.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
+  }
+  function fmtNum(x, decimals) {
+    return Number(x).toFixed(decimals == null ? 2 : decimals);
+  }
+  function render(filterStr) {
+    var weights = getWeights();
+    updateWeightSum();
+    var indices = computeIndex(rows, weights);
+    var rowsWithIndex = rows.map(function(r, i) {
+      return { date: r.date, iip: r.iip, credit: r.credit, m3: r.m3, gsec: r.gsec, index: indices[i] };
+    });
+    var filtered = rowsWithIndex;
+    if (filterStr && filterStr.trim()) {
+      var q = filterStr.trim().toLowerCase();
+      filtered = rowsWithIndex.filter(function(r) { return r.date.toLowerCase().indexOf(q) !== -1; });
+    }
+    var sorted = filtered.slice().sort(function(a, b) {
+      var va = a[sortCol] !== undefined ? a[sortCol] : a.date;
+      var vb = b[sortCol] !== undefined ? b[sortCol] : b.date;
+      if (sortCol === "date") return sortDir * (va.localeCompare(vb));
+      return sortDir * (Number(va) - Number(vb));
+    });
+    var thead = document.getElementById("header-row");
+    thead.innerHTML = "";
+    var colKeys = ["date", "iip", "credit", "m3", "gsec", "index"];
+    var shortLabels = ["Date", "IIP (% yoy)", "Credit (% yoy)", "M3 (% yoy)", "10Y G-Sec (%)", "Composite Index"];
+    colKeys.forEach(function(k, i) {
+      var th = document.createElement("th");
+      th.textContent = shortLabels[i];
+      th.className = sortCol === k ? (sortDir === 1 ? "sorted-asc" : "sorted-desc") : "";
+      th.onclick = function() {
+        if (sortCol === k) sortDir *= -1; else { sortCol = k; sortDir = 1; }
+        render(document.getElementById("filter").value);
+      };
+      thead.appendChild(th);
+    });
+    var tbody = document.getElementById("body");
+    tbody.innerHTML = "";
+    var meanIndex = sorted.length ? sorted.reduce(function(s, r) { return s + r.index; }, 0) / sorted.length : 0;
+    sorted.forEach(function(r) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + fmtDate(r.date) + "</td>" +
+        "<td class='num'>" + fmtNum(r.iip) + "</td>" +
+        "<td class='num'>" + fmtNum(r.credit) + "</td>" +
+        "<td class='num'>" + fmtNum(r.m3) + "</td>" +
+        "<td class='num'>" + fmtNum(r.gsec) + "</td>" +
+        "<td class='num index" + (r.index > meanIndex ? " high" : r.index < meanIndex ? " low" : "") + "'>" + fmtNum(r.index, 2) + "</td>";
+      tbody.appendChild(tr);
+    });
+    document.getElementById("foot").textContent = "Showing " + sorted.length + " of " + rows.length + " months. Click a column header to sort.";
+    updateChart(rowsWithIndex);
+  }
+  function updateChart(rowsWithIndex) {
+    var chronological = rowsWithIndex.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
+    var labels = chronological.map(function(r) {
+      var d = new Date(r.date);
+      return isNaN(d) ? r.date : d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+    });
+    var data = chronological.map(function(r) { return r.index; });
+    if (!chart) {
+      var ctx = document.getElementById("sci-chart").getContext("2d");
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Simple Composite Index",
+            data: data,
+            borderColor: "#58a6ff",
+            backgroundColor: "rgba(88, 166, 255, 0.1)",
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: "index" },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "rgba(26, 35, 50, 0.95)",
+              titleColor: "#e6edf3",
+              bodyColor: "#e6edf3",
+              borderColor: "#2d3a4d",
+              borderWidth: 1,
+              padding: 10,
+              callbacks: {
+                title: function(items) {
+                  var i = items[0] && items[0].dataIndex;
+                  if (i == null || !chart.chronicologicalData) return "";
+                  return chart.chronicologicalData[i].date;
+                },
+                label: function(ctx) {
+                  var i = ctx.dataIndex;
+                  var val = ctx.parsed.y;
+                  return "Index: " + fmtNum(val, 4);
+                }
+              }
+            },
+            zoom: {
+              limits: { x: { min: "original", max: "original" }, y: { min: "original", max: "original" } },
+              zoom: {
+                wheel: { enabled: true },
+                pinch: { enabled: true },
+                mode: "xy"
+              },
+              pan: {
+                enabled: true,
+                mode: "xy"
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: "rgba(45, 58, 77, 0.6)" },
+              ticks: { color: "#8b9cb3", maxTicksLimit: 12 }
+            },
+            y: {
+              grid: { color: "rgba(45, 58, 77, 0.6)" },
+              ticks: { color: "#8b9cb3" },
+              min: function(c) { return Math.max(0, c.min - 2); },
+              max: function(c) { return Math.min(150, c.max + 2); }
+            }
+          }
+        }
+      });
+    }
+    chart.chronicologicalData = chronological;
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.update();
+  }
+  document.getElementById("filter").oninput = function() { render(this.value); };
+  ["w-iip", "w-credit", "w-m3", "w-gsec"].forEach(function(id) {
+    document.getElementById(id).oninput = function() { render(document.getElementById("filter").value); };
+    document.getElementById(id).onchange = function() { render(document.getElementById("filter").value); };
+  });
+  render();
+})();
+  </script>
+</body>
+</html>
