@@ -75,8 +75,11 @@
     (function () {
       'use strict';
 
-      var BENCHMARK_URL = '../../Data/industry data/test data/Analytics data/NIFTY Total Returns Historical Data_weekly_change_pct.csv';
-      var SECTOR_BASE = '../../Data/sectoral indice beta calculation/3Y_weekly/';
+      var DATA_BASE = (typeof location !== 'undefined' && location.hostname === 'rajitt07.github.io')
+        ? '/horizon-capm-share-app/Data/'
+        : '../../Data/';
+      var BENCHMARK_URL = DATA_BASE + 'industry data/test data/Analytics data/NIFTY Total Returns Historical Data_weekly_change_pct.csv';
+      var SECTOR_BASE = DATA_BASE + 'sectoral indice beta calculation/3Y_weekly/';
       var SECTOR_FILES = [
         'BSE 250 Microcap3csv.csv', 'BSE Auto3.csv', 'BSE CAP&Goods3.csv', 'BSE Consumer Discretionary3.csv',
         'BSE Consumer Durables3.csv', 'BSE Energy3.csv', 'BSE FMCG3.csv', 'BSE Healthcare3.csv', 'BSE IT3.csv',
