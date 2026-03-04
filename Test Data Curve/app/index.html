@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Data Curve – Interactive Charts</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 1rem; background: #f8f9fa; color: #1a1a1a; }
+    h1 { font-size: 1.5rem; margin: 0 0 1rem; font-weight: 600; }
+    .chart-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 1.5rem; padding: 1rem; overflow: hidden; }
+    .chart-section h2 { font-size: 1.1rem; margin: 0 0 0.75rem; font-weight: 600; color: #333; }
+    .chart-container { width: 100%; min-height: 360px; }
+    .chart-container .plotly { width: 100% !important; }
+    .error { color: #c00; padding: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Test Data Curve – Interactive Charts</h1>
+
+  <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    <button id="tab-btn-timeseries" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #2563eb; background:#2563eb; color:#fff; cursor:pointer; font-size: 13px;">
+      Time series charts
+    </button>
+    <button id="tab-btn-hp" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background:#e5e7eb; color:#111827; cursor:pointer; font-size: 13px;">
+      HP filter analysis
+    </button>
+  </div>
+
+  <div id="tab-timeseries">
+    <div class="chart-section">
+      <h2>Broad Money (M3)</h2>
+      <div id="chart-m3" class="chart-container"></div>
+      <div id="error-m3" class="error" aria-live="polite"></div>
+      <div id="table-m3-timeseries" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+
+    <div class="chart-section">
+      <h2>GVA at Basic Prices (Quarterly % Change)</h2>
+      <div id="chart-gvaq" class="chart-container"></div>
+      <div id="error-gvaq" class="error" aria-live="polite"></div>
+      <div id="table-gvaq-timeseries" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+
+    <div class="chart-section">
+      <h2>10-Year G-Sec Par Yield (FBIL)</h2>
+      <div id="chart-govsec" class="chart-container"></div>
+      <div id="error-govsec" class="error" aria-live="polite"></div>
+      <div id="table-govsec-timeseries" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+  </div>
+
+  <div id="tab-hp" style="display:none;">
+    <div class="chart-section">
+      <h2>HP Filter – Settings</h2>
+      <p style="font-size: 13px; margin-top: 0.25rem;">
+        Uses a Hodrick–Prescott filter on monthly data. Default monthly &lambda; = 14400.
+        Adjust &lambda; to change trend smoothness – higher values give a smoother trend.
+      </p>
+      <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center; margin-top:0.5rem;">
+        <div style="display:flex; flex-direction:column; gap:0.35rem; max-width:260px;">
+          <label style="font-size:13px; color:#374151;">
+            Lambda (HP smoothing parameter)
+          </label>
+          <input id="hp-lambda-slider" type="range" min="10" max="200000" step="10" value="14400" style="width:240px;">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="font-size:13px; color:#4b5563;">Current:</span>
+            <input id="hp-lambda-input" type="number" value="14400" min="1" step="10" style="width:90px; padding:4px 6px; font-size:13px;">
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.35rem;">
+          <label style="font-size:13px; color:#374151;">Presets</label>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" data-hp-preset="1600" style="padding:4px 10px; border-radius:9999px; border:1px solid #d1d5db; background:#f9fafb; font-size:12px; cursor:pointer;">1600 (quarterly)</button>
+            <button type="button" data-hp-preset="14400" style="padding:4px 10px; border-radius:9999px; border:1px solid #2563eb; background:#eff6ff; color:#1d4ed8; font-size:12px; cursor:pointer;">14400 (monthly default)</button>
+            <button type="button" data-hp-preset="129600" style="padding:4px 10px; border-radius:9999px; border:1px solid #d1d5db; background:#f9fafb; font-size:12px; cursor:pointer;">129600 (smoother)</button>
+          </div>
+        </div>
+      </div>
+      <div id="hp-status" style="margin-top:0.5rem; font-size:12px; color:#6b7280;"></div>
+    </div>
+
+    <div class="chart-section">
+      <h2>Broad Money (M3) – Original series</h2>
+      <div id="hp-m3-raw" class="chart-container"></div>
+      <div id="hp-error-m3-raw" class="error" aria-live="polite"></div>
+      <div id="table-hp-m3-raw" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+    <div class="chart-section">
+      <h2>Broad Money (M3) – HP trend vs original</h2>
+      <div id="hp-m3-trend" class="chart-container"></div>
+      <div id="hp-error-m3-trend" class="error" aria-live="polite"></div>
+      <div id="table-hp-m3-trend" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+
+    <div class="chart-section">
+      <h2>Credit – Original series</h2>
+      <div id="hp-credit-raw" class="chart-container"></div>
+      <div id="hp-error-credit-raw" class="error" aria-live="polite"></div>
+    </div>
+    <div class="chart-section">
+      <h2>Credit – HP trend vs original</h2>
+      <div id="hp-credit-trend" class="chart-container"></div>
+      <div id="hp-error-credit-trend" class="error" aria-live="polite"></div>
+      <div id="table-hp-credit-trend" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+
+    <div class="chart-section">
+      <h2>10-Year G-Sec Par Yield – Original series</h2>
+      <div id="hp-govsec-raw" class="chart-container"></div>
+      <div id="hp-error-govsec-raw" class="error" aria-live="polite"></div>
+      <div id="table-hp-govsec-raw" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+    <div class="chart-section">
+      <h2>10-Year G-Sec Par Yield – HP trend vs original</h2>
+      <div id="hp-govsec-trend" class="chart-container"></div>
+      <div id="hp-error-govsec-trend" class="error" aria-live="polite"></div>
+      <div id="table-hp-govsec-trend" style="overflow-x:auto; font-size:12px; margin-top:0.5rem;"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var CSV_M3 = "Date,Broad Money (M3)\n2025-11-30,9.877754\n2025-10-31,10.301629\n2025-09-30,9.231437\n2025-08-31,9.795018\n2025-07-31,9.606636\n2025-06-30,9.458112231\n2025-05-31,9.291161\n2025-04-30,9.385317265\n2025-03-31,9.647074157\n2025-02-28,9.375588\n2025-01-31,9.317737463\n2024-12-31,9.032686\n2024-11-30,10.78928176\n2024-10-31,10.738652\n2024-09-30,10.42373725\n2024-08-31,9.842678\n2024-07-31,9.669211298\n2024-06-30,10.10195025\n2024-05-31,12.48872101\n2024-04-30,11.3597653\n2024-03-31,11.13446266\n2024-02-29,11.37704865\n2024-01-31,11.52214217\n2023-12-31,11.51935465\n2023-11-30,11.84610424\n2023-10-31,11.44488651\n2023-09-30,11.53805081\n2023-08-31,11.5\n2023-07-31,10.59058\n2023-06-30,13.36118621\n2023-05-31,10.4\n2023-04-30,9.516931521\n2023-03-31,9.027303509\n2023-02-28,9.507209\n2023-01-31,9.8\n2022-12-31,8.7\n2022-11-30,8.929654\n2022-10-31,9.1\n2022-09-30,8.64396\n2022-08-31,8.9\n2022-07-31,8.566518\n2022-06-30,7.785009\n2022-05-31,8.784822\n2022-04-30,9.477363\n2022-03-31,8.8\n2022-02-28,8.725407\n2022-01-31,8.366873\n2021-12-31,11.401949\n2021-11-30,9.525345\n2021-10-31,9.663062\n2021-09-30,9.339126\n2021-08-31,9.52672\n2021-07-31,9.904753\n2021-06-30,10.670151\n2021-05-31,10.325635\n2021-04-30,11.1\n2021-03-31,12.244579\n2021-02-28,12.787738\n2021-01-31,12.078001\n2020-12-31,12.40364\n2020-11-30,12.493552\n2020-10-31,11.584678\n2020-09-30,12.176212\n2020-08-31,12.571892\n2020-07-31,13.219011\n2020-06-30,12.3\n2020-05-31,11.735796\n2020-04-30,10.764852\n2020-03-31,8.863774\n2020-02-29,10.168521\n2020-01-31,11.2\n2019-12-31,10.372685\n2019-11-30,9.828472\n2019-10-31,10.598516\n2019-09-30,9.6\n2019-08-31,9.8\n2019-07-31,10.622682\n2019-06-30,10.089656\n2019-05-31,10.272814\n2019-04-30,9.991365\n2019-03-31,10.5\n2019-02-28,10.8378\n2019-01-31,10.443202\n2018-12-31,10.152515\n2018-11-30,10.43153\n2018-10-31,9.99643\n2018-09-30,9.394319\n2018-08-31,10.779992\n2018-07-31,9.874699\n2018-06-30,9.756405\n2018-05-31,10.359724\n2018-04-30,10.231652\n2018-03-31,9.151439\n2018-02-28,9.921902\n2018-01-31,10.378487\n2017-12-31,10.019357\n2017-11-30,8.374324\n2017-10-31,6.06885\n2017-09-30,5.559142\n2017-08-31,6.682812\n2017-07-31,6.676587\n2017-06-30,6.99778\n2017-05-31,6.573706\n2017-04-30,6.712323\n2017-03-31,10.6\n2017-02-28,6.067363\n2017-01-31,6.010535\n2016-12-31,6.203678\n2016-11-30,8.073359\n2016-10-31,10.427971\n2016-09-30,13.645687\n2016-08-31,9.983371\n2016-07-31,10.073511\n2016-06-30,10.293748\n2016-05-31,9.90986\n2016-04-30,10.754266\n2016-03-31,10.117823\n2016-02-29,11.062556\n2016-01-31,10.861424";
+
+      var CSV_GVAQ = "Unnamed: 0,Unnamed: 1,Unnamed: 2,Unnamed: 3\n, Year, Quarter,1 Real Sector (% Change)\n,,,1.1 GVA at Basic Prices\n,2025-26,Q2,8.122192\n,,Q1,7.631501\n,2024-25,Q4,6.767838119406\n,,Q3,6.493034275835\n,,Q2,5.811495859568\n,,Q1,6.548031086961\n,2023-24,Q4,7.269210210219\n,,Q3,7.998987779679\n,,Q2,9.223460993098\n,,Q1,8.263854091963\n,2022-23,Q4,6.030344658351\n,,Q3,4.833183202283\n,,Q2,5.035473303743\n,,Q1,11.949167\n,2021-22,Q4,6.687837761528\n,,Q3,4.744648\n,,Q2,9.326937\n,,Q1,20.247811\n,2020-21,Q4,6.318608\n,,Q3,2.779707\n,,Q2,-5.12089\n,,Q1,-21.049565\n,2019-20,Q4,3.567055\n,,Q3,3.372606\n,,Q2,4.227674\n,,Q1,4.635536\n,2018-19,Q4,4.793963\n,,Q3,5.285626\n,,Q2,6.138554\n,,Q1,7.114633\n,2017-18,Q4,7.396652\n,,Q3,6.953731\n,,Q2,5.539996\n,,Q1,4.980161\n,2016-17,Q4,6.828873\n,,Q3,7.531656\n,,Q2,8.291313\n,,Q1,9.317093\n,2015-16,Q4,8.71829\n,,Q3,7.325722\n,,Q2,8.35811\n,,Q1,7.699845\n,2014-15,Q4,6.388228\n,,Q3,6.137059\n,,Q2,8.453386\n,,Q1,7.747347\n,2013-14,Q4,4.555511\n,,Q3,6.310492\n,,Q2,7.128661\n,,Q1,6.345373\n,2012-13,Q4,4.442224\n,,Q3,4.997005\n,,Q2,7.040617\n,,Q1,5.355493";
+
+      var CSV_GVAGR = ",Year / Items,Manufacturing\n,,Constant Prices\n,1,8\n,2025-26   ,7.03257179476352\n,2024-25   ,4.51925984930531\n,2023-24   ,12.302341464634\n,2022-23   ,-1.74419656330097\n,2021-22   ,9.95521967157066\n,2020-21   ,3.07361099345011\n,2019-20   ,-2.97496294201908\n,2018-19   ,5.41154558527502\n,2017-18   ,7.52709313575671\n,2016-17   ,7.9267799458991\n,2015-16   ,13.0593881722486\n,2014-15   ,7.89570637447468\n,2013-14   ,4.9658578775726\n,2012-13   ,5.45303286699301\n,2011-12   ,3.12508761528385\n,2010-11   ,7.69510646465579\n,2009-10   ,10.9676297784532\n,2008-09   ,4.66361548224108\n,2007-08   ,6.98058873175923\n,2006-07   ,17.7877923180111\n,2005-06   ,9.34908869079174\n,2004-05   ,7.38325331093545\n,2003-04   ,6.33661032187666\n,2002-03   ,6.86676360775696\n,2001-02   ,2.27032519435828\n,2000-01   ,7.29909784922808\n,1999-00   ,5.39377451542443\n,1998-99   ,3.13184359352337\n,1997-98   ,0.0511869083449662\n,1996-97   ,9.50127678013345\n,1995-96   ,15.4614629244571\n,1994-95   ,10.8211832440994\n,1993-94   ,8.59134107487767\n,1992-93   ,3.09018346537596\n,1991-92   ,-2.39846380060539\n,1990-91   ,4.77354551406275\n,1989-90   ,8.83941725280855\n,1988-89   ,8.49631239736364\n,1987-88   ,5.60002171875092\n,1986-87   ,5.49423951178726\n,1985-86   ,3.18748976424421\n,1984-85   ,4.20797101296952\n,1983-84   ,10.2319886970363\n,1982-83   ,3.28815277095699\n,1981-82   ,8.16962717943484\n,1980-81   ,0.194426441902847\n,1979-80   ,-3.22118184659434\n,1978-79   ,12.3521417427619\n,1977-78   ,6.22360049153784\n,1976-77   ,8.76999127720043\n,1975-76   ,2.10807600931346\n,1974-75   ,2.91511336528802\n,1973-74   ,4.44912549508667\n,1972-73   ,3.92039800965579\n,1971-72   ,3.26757089985791\n,1970-71   ,2.34873448797111\n,1969-70   ,10.7289806696941\n,1968-69   ,5.5387136415995\n,1967-68   ,0.386576739322595\n,1966-67   ,0.787532123743733\n,1965-66   ,0.928714859261947\n,1964-65   ,6.91475087234996\n,1963-64   ,9.45853324180497\n,1962-63   ,7.27941176475219\n,1961-62   ,8.53950518773374\n,1960-61   ,8.297320655594\n,1959-60   ,6.79061181582129\n,1958-59   ,4.95433158018424\n,1957-58   ,3.85168151760182\n,1956-57   ,7.50927070470396\n,1955-56   ,7.83072309239996\n,1954-55   ,7.00659654137071\n,1953-54   ,7.74106799804178\n,1952-53   ,3.47843371080718\n,1951-52   ,3.15767890097866";
+      // HP-filter tab uses data loaded from CSV files rather than this growth-rate series.
+
+      var CSV_GOVSEC = "Date,4.14 10-Year G-Sec Par Yield (FBIL)\n2025-11-30,6.55\n2025-10-31,6.5\n2025-09-30,6.61\n2025-08-31,6.67\n2025-07-31,6.41\n2025-06-30,6.34\n2025-05-31,6.23\n2025-04-30,6.4\n2025-03-31,6.62\n2025-02-28,6.73\n2025-01-31,6.71\n2024-12-31,6.76\n2024-11-30,6.79\n2024-10-31,6.81\n2024-09-30,6.78\n2024-08-31,6.9\n2024-07-31,6.97\n2024-06-30,7.04\n2024-05-31,7.01\n2024-04-30,7.16\n2024-03-31,7.07\n2024-02-29,..\n2024-01-31,7.15\n2023-12-31,7.2\n2023-11-30,7.31\n2023-10-31,7.35\n2023-09-30,7.22\n2023-08-31,7.14\n2023-07-31,7.17\n2023-06-30,7.1\n2023-05-31,7.05\n2023-04-30,7.12\n2023-03-31,7.31\n2023-02-28,7.43\n2023-01-31,7.351\n2022-12-31,7.3388\n2022-11-30,7.2888\n2022-10-31,7.4462\n2022-09-30,7.4135\n2022-08-31,7.1737\n2022-07-31,7.319\n2022-06-30,7.5\n2022-05-31,7.43\n2022-04-30,7.148\n2022-03-31,6.86\n2022-02-28,6.7798\n2022-01-31,6.69\n2021-12-31,6.4688\n2021-11-30,6.33\n2021-10-31,6.4262\n2021-09-30,6.2309\n2021-08-31,6.2731\n2021-07-31,6.2158\n2021-06-30,6.36\n2021-05-31,6.28\n2021-04-30,6.2551\n2021-03-31,6.34\n2021-02-28,6.3358\n2021-01-31,5.9597\n2020-12-31,5.89\n2020-11-30,5.8419\n2020-10-31,5.9119\n2020-09-30,6.04\n2020-08-31,6.12\n2020-07-31,5.7833\n2020-06-30,5.9\n2020-05-31,5.7889\n2020-04-30,6.55\n2020-03-31,6.71\n2020-02-29,6.6529\n2020-01-31,6.8612\n2019-12-31,6.7762\n2019-11-30,6.6464\n2019-10-31,6.54\n2019-09-30,6.8473\n2019-08-31,6.6974\n2019-07-31,6.47\n2019-06-30,6.9332\n2019-05-31,7.0706\n2019-04-30,7.4409\n2019-03-31,7.3391\n2019-02-28,7.41\n2019-01-31,7.3\n2018-12-31,7.405\n2018-11-30,7.6401\n2018-10-31,7.8441\n2018-09-30,8.0007\n2018-08-31,7.9517\n2018-07-31,7.76\n2018-06-30,7.9821\n2018-05-31,7.92\n2018-04-30,7.7969\n2018-03-31,7.4216\n2018-02-28,7.7\n2018-01-31,7.2736\n2017-12-31,7.51\n2017-11-30,7.2051\n2017-10-31,7\n2017-09-30,6.8283\n2017-08-31,6.6546\n2017-07-31,6.5555\n2017-06-30,6.5665\n2017-05-31,6.69\n2017-04-30,7.2009\n2017-03-31,7.08\n2017-02-28,7.19\n2017-01-31,6.8675\n2016-12-31,6.6298\n2016-11-30,6.3\n2016-10-31,6.8321\n2016-09-30,6.8105\n2016-08-31,7.1336\n2016-07-31,7.2655\n2016-06-30,7.51\n2016-05-31,7.48\n2016-04-30,7.4409\n2016-03-31,7.34\n2016-02-29,7.61\n2016-01-31,7.6387";
+
+      function parseCSV(text) {
+        var rows = [];
+        var lines = text.split(/\r?\n/);
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          var cells = [];
+          var inQuotes = false;
+          var cell = '';
+          for (var j = 0; j < line.length; j++) {
+            var ch = line[j];
+            if (ch === '"') inQuotes = !inQuotes;
+            else if ((ch === ',' && !inQuotes) || ch === '\r') {
+              cells.push(cell.trim());
+              cell = '';
+            } else if (ch !== '\r') cell += ch;
+          }
+          cells.push(cell.trim());
+          rows.push(cells);
+        }
+        return rows;
+      }
+
+      function parseM3() {
+        var rows = parseCSV(CSV_M3);
+        if (rows.length < 2) return { error: 'Not enough rows in Broad Money M3 data' };
+        var header = rows[0];
+        var dateIdx = header.indexOf('Date');
+        var valueIdx = header.indexOf('Broad Money (M3)');
+        if (dateIdx === -1 || valueIdx === -1) return { error: 'Expected columns "Date" and "Broad Money (M3)" in Broad Money M3' };
+        var dates = [];
+        var values = [];
+        for (var i = 1; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length <= Math.max(dateIdx, valueIdx)) continue;
+          var d = r[dateIdx];
+          var v = parseFloat(r[valueIdx]);
+          if (!d || isNaN(v)) continue;
+          dates.push(d);
+          values.push(v);
+        }
+        if (dates.length === 0) return { error: 'No valid data rows in Broad Money M3' };
+        var order = dates.map(function(_, i) { return i; });
+        order.sort(function(a, b) { return dates[a].localeCompare(dates[b]); });
+        var sortedDates = order.map(function(i) { return dates[i]; });
+        var sortedValues = order.map(function(i) { return values[i]; });
+        return { labels: sortedDates, values: sortedValues };
+      }
+
+      function parseGOVSEC() {
+        var rows = parseCSV(CSV_GOVSEC);
+        if (rows.length < 2) return { error: 'Not enough rows in 10Y G-Sec data' };
+        var header = rows[0];
+        var dateIdx = header.indexOf('Date');
+        var valueIdx = -1;
+        for (var k = 0; k < header.length; k++) {
+          if (header[k].indexOf('10-Year') !== -1 || header[k].indexOf('G-Sec') !== -1) { valueIdx = k; break; }
+        }
+        if (valueIdx === -1) valueIdx = 1;
+        if (dateIdx === -1) return { error: 'Expected "Date" column in 10Y G-Sec data' };
+        var dates = [];
+        var values = [];
+        for (var i = 1; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length <= Math.max(dateIdx, valueIdx)) continue;
+          var d = r[dateIdx];
+          var v = parseFloat(r[valueIdx]);
+          if (!d || isNaN(v)) continue;
+          dates.push(d);
+          values.push(v);
+        }
+        if (dates.length === 0) return { error: 'No valid data rows in 10Y G-Sec' };
+        var order = dates.map(function(_, i) { return i; });
+        order.sort(function(a, b) { return dates[a].localeCompare(dates[b]); });
+        var sortedDates = order.map(function(i) { return dates[i]; });
+        var sortedValues = order.map(function(i) { return values[i]; });
+        return { labels: sortedDates, values: sortedValues };
+      }
+
+      function parseGVAQ() {
+        var rows = parseCSV(CSV_GVAQ);
+        var dataRows = [];
+        var currentYear = null;
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length < 4) continue;
+          var yearCell = (r[1] || '').trim();
+          var qCell = (r[2] || '').trim();
+          var valStr = (r[3] || '').trim();
+          if (/^\d{4}-\d{2}$/.test(yearCell)) currentYear = yearCell;
+          if (!currentYear || !/^Q[1-4]$/.test(qCell)) continue;
+          var val = parseFloat(valStr);
+          if (isNaN(val)) continue;
+          dataRows.push({ year: currentYear, quarter: qCell, value: val });
+        }
+        if (dataRows.length === 0) return { error: 'No valid quarterly GVA rows found' };
+        var qOrder = { 'Q1': 1, 'Q2': 2, 'Q3': 3, 'Q4': 4 };
+        var yearOrder = {};
+        var years = [];
+        dataRows.forEach(function(row) {
+          if (yearOrder[row.year] === undefined) {
+            yearOrder[row.year] = years.length;
+            years.push(row.year);
+          }
+        });
+        years.sort(function(a, b) {
+          var y1 = parseInt(a.split('-')[0], 10);
+          var y2 = parseInt(b.split('-')[0], 10);
+          return y1 - y2;
+        });
+        dataRows.sort(function(a, b) {
+          var ya = years.indexOf(a.year);
+          var yb = years.indexOf(b.year);
+          if (ya !== yb) return ya - yb;
+          return qOrder[a.quarter] - qOrder[b.quarter];
+        });
+        var labels = dataRows.map(function(row) { return row.year + ' ' + row.quarter; });
+        var values = dataRows.map(function(row) { return row.value; });
+        return { labels: labels, values: values };
+      }
+
+      function parseGVAGR() {
+        var rows = parseCSV(CSV_GVAGR);
+        var dataRows = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length < 3) continue;
+          var yearCell = (r[1] || '').trim();
+          var valStr = (r[2] || '').trim();
+          var match = yearCell.match(/^(\d{4})-(\d{2})\s*$/);
+          if (!match) continue;
+          var val = parseFloat(valStr);
+          if (isNaN(val)) continue;
+          dataRows.push({ year: match[1] + '-' + match[2], value: val });
+        }
+        if (dataRows.length === 0) return { error: 'No valid GVA GR growth rows found' };
+        dataRows.sort(function(a, b) {
+          var y1 = parseInt(a.year.split('-')[0], 10);
+          var y2 = parseInt(b.year.split('-')[0], 10);
+          return y1 - y2;
+        });
+        var labels = dataRows.map(function(row) { return row.year; });
+        var values = dataRows.map(function(row) { return row.value; });
+        return { labels: labels, values: values };
+      }
+
+      // ----- HP FILTER UTILITIES -----
+
+      function hpZeros(n, m) {
+        return Array.from({ length: n }, function () { return new Array(m || n).fill(0); });
+      }
+
+      function hpInvertMatrix(A) {
+        var n = A.length;
+        var I = hpZeros(n, n);
+        for (var i = 0; i < n; i++) I[i][i] = 1;
+        var M = A.map(function (r) { return r.slice(); });
+        for (var i = 0; i < n; i++) {
+          var d = M[i][i];
+          if (Math.abs(d) < 1e-12) throw new Error('Singular matrix in HP filter');
+          for (var j = 0; j < n; j++) {
+            M[i][j] /= d;
+            I[i][j] /= d;
+          }
+          for (var k = 0; k < n; k++) {
+            if (k === i) continue;
+            var f = M[k][i];
+            for (var j = 0; j < n; j++) {
+              M[k][j] -= f * M[i][j];
+              I[k][j] -= f * I[i][j];
+            }
+          }
+        }
+        return I;
+      }
+
+      function hpMatVec(A, v) {
+        return A.map(function (row) {
+          return row.reduce(function (s, val, idx) { return s + val * v[idx]; }, 0);
+        });
+      }
+
+      function hpFilterSeries(y, lambda) {
+        var T = y.length;
+        if (T < 3) {
+          return { trend: y.slice(), cycle: new Array(T).fill(0) };
+        }
+        var I = hpZeros(T, T);
+        for (var i = 0; i < T; i++) I[i][i] = 1;
+        var D = hpZeros(T - 2, T);
+        for (var t = 0; t < T - 2; t++) {
+          D[t][t] = 1;
+          D[t][t + 1] = -2;
+          D[t][t + 2] = 1;
+        }
+        var Dt = hpZeros(T, T - 2);
+        for (var r = 0; r < T; r++) {
+          for (var c = 0; c < T - 2; c++) {
+            Dt[r][c] = D[c][r];
+          }
+        }
+        var DtD = hpZeros(T, T);
+        for (var i = 0; i < T; i++) {
+          for (var j = 0; j < T; j++) {
+            var s = 0;
+            for (var k = 0; k < T - 2; k++) s += Dt[i][k] * D[k][j];
+            DtD[i][j] = s;
+          }
+        }
+        var A = hpZeros(T, T);
+        for (var i = 0; i < T; i++) {
+          for (var j = 0; j < T; j++) {
+            A[i][j] = I[i][j] + lambda * DtD[i][j];
+          }
+        }
+        var trend = hpMatVec(hpInvertMatrix(A), y);
+        var cycle = y.map(function (v, idx) { return v - trend[idx]; });
+        return { trend: trend, cycle: cycle };
+      }
+
+      function parseDateYMD(dateStr) {
+        // Accepts "YYYY-MM-DD" or "YYYY/MM/DD"
+        if (!dateStr) return null;
+        var m = dateStr.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+        if (!m) return null;
+        return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+      }
+
+      function parseDateDMY(dateStr) {
+        // Accepts "dd/mm/yy hh:mm" or "dd/mm/yyyy hh:mm"
+        if (!dateStr) return null;
+        var m = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (!m) return null;
+        var yr = parseInt(m[3], 10);
+        if (yr < 100) yr += yr >= 50 ? 1900 : 2000;
+        return new Date(yr, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+      }
+
+      var hpDataCache = null;
+
+      function loadHPData() {
+        if (hpDataCache) {
+          return Promise.resolve(hpDataCache);
+        }
+        // CSVs live in ../data relative to this app/index.html
+        var basePath = '../data/';
+        function fetchText(name) {
+          return fetch(basePath + name).then(function (r) {
+            if (!r.ok) throw new Error('Failed to load ' + name + ': ' + r.status);
+            return r.text();
+          });
+        }
+
+        return Promise.all([
+          fetchText('Broad Money M3.csv'),
+          fetchText('cr bm.csv'),
+          fetchText('GOV Sec10Y.csv')
+        ]).then(function (texts) {
+          var m3 = parseM3Csv(texts[0]);
+          var credit = parseCreditCsv(texts[1]);
+          var gsec = parseGovSecCsv(texts[2]);
+          hpDataCache = { m3: m3, credit: credit, gsec: gsec };
+          return hpDataCache;
+        }).catch(function (err) {
+          var status = document.getElementById('hp-status');
+          if (status) status.textContent = 'HP data load error: ' + err.message;
+          throw err;
+        });
+      }
+
+      function parseM3Csv(text) {
+        var rows = parseCSV(text);
+        if (!rows.length) return { dates: [], values: [], logs: [] };
+        var header = rows[0];
+        var dateIdx = header.indexOf('Date');
+        var valueIdx = header.indexOf('Broad Money (M3)');
+        var logIdx = header.indexOf('log');
+        var dates = [], values = [], logs = [];
+        for (var i = 1; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length <= Math.max(dateIdx, valueIdx)) continue;
+          var d = parseDateYMD(r[dateIdx]);
+          var v = parseFloat(r[valueIdx]);
+          var l = logIdx !== -1 ? parseFloat(r[logIdx]) : (v > 0 ? Math.log(v) : NaN);
+          if (!d || !isFinite(v) || !isFinite(l)) continue;
+          dates.push(d);
+          values.push(v);
+          logs.push(l);
+        }
+        var order = dates.map(function (_, idx) { return idx; });
+        order.sort(function (a, b) { return dates[a] - dates[b]; });
+        return {
+          dates: order.map(function (i) { return dates[i]; }),
+          values: order.map(function (i) { return values[i]; }),
+          logs: order.map(function (i) { return logs[i]; })
+        };
+      }
+
+      function parseCreditCsv(text) {
+        var rows = parseCSV(text);
+        if (!rows.length) return { dates: [], values: [], logs: [] };
+        var header = rows[0];
+        var dateIdx = header.indexOf('Date');
+        var valueIdx = header.indexOf('2.1.2 Credit');
+        var logIdx = header.indexOf('log');
+        var dates = [], values = [], logs = [];
+        for (var i = 1; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length <= Math.max(dateIdx, valueIdx)) continue;
+          var d = parseDateDMY(r[dateIdx]);
+          var v = parseFloat(r[valueIdx]);
+          var l = logIdx !== -1 ? parseFloat(r[logIdx]) : (v > 0 ? Math.log(v) : NaN);
+          if (!d || !isFinite(v) || !isFinite(l)) continue;
+          dates.push(d);
+          values.push(v);
+          logs.push(l);
+        }
+        var order = dates.map(function (_, idx) { return idx; });
+        order.sort(function (a, b) { return dates[a] - dates[b]; });
+        return {
+          dates: order.map(function (i) { return dates[i]; }),
+          values: order.map(function (i) { return values[i]; }),
+          logs: order.map(function (i) { return logs[i]; })
+        };
+      }
+
+      function parseGovSecCsv(text) {
+        var rows = parseCSV(text);
+        if (!rows.length) return { dates: [], values: [] };
+        var header = rows[0];
+        var dateIdx = header.indexOf('Date');
+        var valueIdx = -1;
+        for (var k = 0; k < header.length; k++) {
+          if (header[k].indexOf('10-Year') !== -1 || header[k].indexOf('G-Sec') !== -1) {
+            valueIdx = k;
+            break;
+          }
+        }
+        if (valueIdx === -1) valueIdx = 1;
+        var dates = [], values = [];
+        for (var i = 1; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length <= Math.max(dateIdx, valueIdx)) continue;
+          var d = parseDateYMD(r[dateIdx]);
+          var v = parseFloat(r[valueIdx]);
+          if (!d || !isFinite(v)) continue;
+          dates.push(d);
+          values.push(v);
+        }
+        var order = dates.map(function (_, idx) { return idx; });
+        order.sort(function (a, b) { return dates[a] - dates[b]; });
+        return {
+          dates: order.map(function (i) { return dates[i]; }),
+          values: order.map(function (i) { return values[i]; })
+        };
+      }
+
+      var layoutCommon = {
+        margin: { t: 40, r: 40, b: 60, l: 60 },
+        xaxis: { title: '', tickangle: -45, type: 'category', automargin: true },
+        yaxis: { title: '', automargin: true },
+        showlegend: false,
+        hovermode: 'closest',
+        dragmode: 'pan',
+        scrollZoom: true,
+        plot_bgcolor: '#fafafa',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        font: { size: 12 },
+        autosize: true
+      };
+
+      var config = { responsive: true, displayModeBar: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'], scrollZoom: true };
+
+      function renderTable(containerId, headers, rows) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        if (!rows || !rows.length) {
+          container.innerHTML = '<span style="color:#9ca3af;">No data to display.</span>';
+          return;
+        }
+        var html = '<table style="border-collapse:collapse; min-width:100%;">';
+        html += '<thead><tr>';
+        for (var i = 0; i < headers.length; i++) {
+          html += '<th style="text-align:left; padding:4px 8px; border-bottom:1px solid #e5e7eb; font-weight:600; color:#374151; font-size:12px;">' +
+            headers[i] + '</th>';
+        }
+        html += '</tr></thead><tbody>';
+        for (var r = 0; r < rows.length; r++) {
+          html += '<tr>';
+          for (var c = 0; c < rows[r].length; c++) {
+            html += '<td style="padding:3px 8px; border-bottom:1px solid #f3f4f6; font-size:12px; text-align:' +
+              (c === 0 ? 'left' : 'right') + ';">' + rows[r][c] + '</td>';
+          }
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      }
+
+      function renderM3() {
+        var out = parseM3();
+        var el = document.getElementById('error-m3');
+        if (out.error) {
+          el.textContent = out.error;
+          return;
+        }
+        el.textContent = '';
+        Plotly.newPlot('chart-m3', [{
+          type: 'scatter',
+          mode: 'lines+markers',
+          x: out.labels,
+          y: out.values,
+          name: 'Broad Money (M3)',
+          line: { color: '#2563eb', width: 2 },
+          marker: { size: 4 },
+          hovertemplate: '<b>%{x}</b><br>Broad Money (M3): %{y:.3f}<extra></extra>'
+        }], Object.assign({}, layoutCommon, {
+          xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+          yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Broad Money (M3)' })
+        }), config);
+
+        // Table for time-series Broad Money
+        var rows = out.labels.map(function (d, idx) {
+          var v = out.values[idx];
+          return [d, (v != null && isFinite(v)) ? v.toFixed(6) : ''];
+        });
+        renderTable('table-m3-timeseries', ['Date', 'Broad Money (M3)'], rows);
+      }
+
+      function renderGVAQ() {
+        var out = parseGVAQ();
+        var el = document.getElementById('error-gvaq');
+        if (out.error) {
+          el.textContent = out.error;
+          return;
+        }
+        el.textContent = '';
+        Plotly.newPlot('chart-gvaq', [{
+          type: 'scatter',
+          mode: 'lines+markers',
+          x: out.labels,
+          y: out.values,
+          name: 'GVA % Change',
+          line: { color: '#059669', width: 2 },
+          marker: { size: 5 },
+          hovertemplate: '<b>%{x}</b><br>GVA % Change: %{y:.3f}<extra></extra>'
+        }], Object.assign({}, layoutCommon, {
+          xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Quarter' }),
+          yaxis: Object.assign({}, layoutCommon.yaxis, { title: '% Change' })
+        }), config);
+
+        var rows = out.labels.map(function (d, idx) {
+          var v = out.values[idx];
+          return [d, (v != null && isFinite(v)) ? v.toFixed(4) : ''];
+        });
+        renderTable('table-gvaq-timeseries', ['Quarter', 'GVA % Change'], rows);
+      }
+
+      function renderGVAGR() {
+        var out = parseGVAGR();
+        var el = document.getElementById('error-gvagr');
+        if (out.error) {
+          el.textContent = out.error;
+          return;
+        }
+        el.textContent = '';
+        Plotly.newPlot('chart-gvagr', [{
+          type: 'scatter',
+          mode: 'lines+markers',
+          x: out.labels,
+          y: out.values,
+          name: 'Growth rate (%)',
+          line: { color: '#7c3aed', width: 2 },
+          marker: { size: 4 },
+          fill: 'tozeroy',
+          fillcolor: 'rgba(124, 58, 237, 0.15)',
+          hovertemplate: '<b>%{x}</b><br>Growth: %{y:.2f}%<extra></extra>'
+        }], Object.assign({}, layoutCommon, {
+          xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Financial Year' }),
+          yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Growth Rate (%)' })
+        }), config);
+      }
+
+      function renderGOVSEC() {
+        var out = parseGOVSEC();
+        var el = document.getElementById('error-govsec');
+        if (out.error) {
+          el.textContent = out.error;
+          return;
+        }
+        el.textContent = '';
+        Plotly.newPlot('chart-govsec', [{
+          type: 'scatter',
+          mode: 'lines+markers',
+          x: out.labels,
+          y: out.values,
+          name: '10Y G-Sec Par Yield (%)',
+          line: { color: '#dc2626', width: 2 },
+          marker: { size: 4 },
+          hovertemplate: '<b>%{x}</b><br>Yield: %{y:.2f}%<extra></extra>'
+        }], Object.assign({}, layoutCommon, {
+          xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+          yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Par Yield (%)' })
+        }), config);
+
+        var rows = out.labels.map(function (d, idx) {
+          var v = out.values[idx];
+          return [d, (v != null && isFinite(v)) ? v.toFixed(4) : ''];
+        });
+        renderTable('table-govsec-timeseries', ['Date', '10Y G-Sec Yield (%)'], rows);
+      }
+
+      // ----- HP FILTER RENDERING -----
+
+      var hpInitialized = false;
+
+      function getHpLambda() {
+        var input = document.getElementById('hp-lambda-input');
+        var val = parseFloat(input && input.value);
+        if (!isFinite(val) || val <= 0) val = 14400;
+        return val;
+      }
+
+      function setHpLambda(lambda) {
+        var input = document.getElementById('hp-lambda-input');
+        var slider = document.getElementById('hp-lambda-slider');
+        if (input) input.value = lambda;
+        if (slider) slider.value = Math.max(parseFloat(slider.min), Math.min(parseFloat(slider.max), lambda));
+      }
+
+      function formatDateLabel(dates) {
+        return dates.map(function (d) {
+          return d.getFullYear().toString() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        });
+      }
+
+      function renderHpCharts() {
+        loadHPData().then(function (data) {
+          var lambda = getHpLambda();
+          var status = document.getElementById('hp-status');
+          if (status) status.textContent = 'λ = ' + lambda.toFixed(0) + ' (HP trend recomputed for all series)';
+
+          // Broad Money (M3)
+          if (data.m3.dates.length) {
+            var xM3 = formatDateLabel(data.m3.dates);
+            var hpM3 = hpFilterSeries(data.m3.logs, lambda);
+            var trendLogM3 = hpM3.trend;
+            var cycleLogM3 = hpM3.cycle;
+            var trendLevelM3 = trendLogM3.map(function (v) { return Math.exp(v); });
+            var customM3 = data.m3.values.map(function (v, idx) {
+              return [v, data.m3.logs[idx]];
+            });
+
+            Plotly.newPlot('hp-m3-raw', [{
+              type: 'scatter',
+              mode: 'lines',
+              x: xM3,
+              y: data.m3.values,
+              name: 'Broad Money (M3)',
+              line: { color: '#2563eb', width: 2 },
+              hovertemplate: '<b>%{x}</b><br>M3: %{y:.3f}<extra></extra>'
+            }], Object.assign({}, layoutCommon, {
+              xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+              yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Broad Money (M3)' })
+            }), config);
+
+            var tableRowsM3Raw = xM3.map(function (d, idx) {
+              var v = data.m3.values[idx];
+              var lg = data.m3.logs[idx];
+              return [d,
+                (v != null && isFinite(v)) ? v.toFixed(6) : '',
+                (lg != null && isFinite(lg)) ? lg.toFixed(6) : ''
+              ];
+            });
+            renderTable('table-hp-m3-raw', ['Date', 'M3', 'log(M3)'], tableRowsM3Raw);
+
+            Plotly.newPlot('hp-m3-trend', [{
+              type: 'scatter',
+              mode: 'lines',
+              x: xM3,
+              y: data.m3.values,
+              name: 'M3 (original)',
+              line: { color: '#9ca3af', width: 1.5 },
+              customdata: customM3,
+              hovertemplate: '<b>%{x}</b><br>M3: %{customdata[0]:.3f}<br>log(M3): %{customdata[1]:.6f}<extra></extra>'
+            }, {
+              type: 'scatter',
+              mode: 'lines',
+              x: xM3,
+              y: trendLevelM3,
+              name: 'HP trend (from log)',
+              line: { color: '#2563eb', width: 2 },
+              customdata: customM3,
+              hovertemplate: '<b>%{x}</b><br>M3: %{customdata[0]:.3f}<br>log(M3): %{customdata[1]:.6f}<br>HP trend: %{y:.3f}<extra></extra>'
+            }], Object.assign({}, layoutCommon, {
+              xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+              yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Broad Money (M3)' })
+            }), config);
+
+            var tableRowsM3Trend = xM3.map(function (d, idx) {
+              var v = data.m3.values[idx];
+              var lg = data.m3.logs[idx];
+              var tr = trendLevelM3[idx];
+              var cy = cycleLogM3[idx];
+              return [
+                d,
+                (v != null && isFinite(v)) ? v.toFixed(6) : '',
+                (lg != null && isFinite(lg)) ? lg.toFixed(6) : '',
+                (tr != null && isFinite(tr)) ? tr.toFixed(6) : '',
+                (cy != null && isFinite(cy)) ? cy.toFixed(6) : ''
+              ];
+            });
+            renderTable('table-hp-m3-trend', ['Date', 'M3', 'log(M3)', 'HP trend (level)', 'Cycle (log space)'], tableRowsM3Trend);
+          }
+
+          // Credit
+          if (data.credit.dates.length) {
+            var xC = formatDateLabel(data.credit.dates);
+            var hpC = hpFilterSeries(data.credit.logs, lambda);
+            var trendLogC = hpC.trend;
+            var cycleLogC = hpC.cycle;
+            var trendLevelC = trendLogC.map(function (v) { return Math.exp(v); });
+            var customC = data.credit.values.map(function (v, idx) {
+              return [v, data.credit.logs[idx]];
+            });
+
+            Plotly.newPlot('hp-credit-raw', [{
+              type: 'scatter',
+              mode: 'lines',
+              x: xC,
+              y: data.credit.values,
+              name: 'Credit (2.1.2)',
+              line: { color: '#16a34a', width: 2 },
+              hovertemplate: '<b>%{x}</b><br>Credit: %{y:.3f}<extra></extra>'
+            }], Object.assign({}, layoutCommon, {
+              xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+              yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Credit' })
+            }), config);
+
+            var tableRowsCreditRaw = xC.map(function (d, idx) {
+              var v = data.credit.values[idx];
+              var lg = data.credit.logs[idx];
+              return [
+                d,
+                (v != null && isFinite(v)) ? v.toFixed(6) : '',
+                (lg != null && isFinite(lg)) ? lg.toFixed(6) : ''
+              ];
+            });
+            renderTable('table-hp-credit-raw', ['Date', 'Credit', 'log(Credit)'], tableRowsCreditRaw);
+
+            Plotly.newPlot('hp-credit-trend', [{
+              type: 'scatter',
+              mode: 'lines',
+              x: xC,
+              y: data.credit.values,
+              name: 'Credit (original)',
+              line: { color: '#a3e635', width: 1.5 },
+              customdata: customC,
+              hovertemplate: '<b>%{x}</b><br>Credit: %{customdata[0]:.3f}<br>log(Credit): %{customdata[1]:.6f}<extra></extra>'
+            }, {
+              type: 'scatter',
+              mode: 'lines',
+              x: xC,
+              y: trendLevelC,
+              name: 'HP trend (from log)',
+              line: { color: '#16a34a', width: 2 },
+              customdata: customC,
+              hovertemplate: '<b>%{x}</b><br>Credit: %{customdata[0]:.3f}<br>log(Credit): %{customdata[1]:.6f}<br>HP trend: %{y:.3f}<extra></extra>'
+            }], Object.assign({}, layoutCommon, {
+              xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+              yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Credit' })
+            }), config);
+
+            var tableRowsCreditTrend = xC.map(function (d, idx) {
+              var v = data.credit.values[idx];
+              var lg = data.credit.logs[idx];
+              var tr = trendLevelC[idx];
+              var cy = cycleLogC[idx];
+              return [
+                d,
+                (v != null && isFinite(v)) ? v.toFixed(6) : '',
+                (lg != null && isFinite(lg)) ? lg.toFixed(6) : '',
+                (tr != null && isFinite(tr)) ? tr.toFixed(6) : '',
+                (cy != null && isFinite(cy)) ? cy.toFixed(6) : ''
+              ];
+            });
+            renderTable('table-hp-credit-trend', ['Date', 'Credit', 'log(Credit)', 'HP trend (level)', 'Cycle (log space)'], tableRowsCreditTrend);
+          }
+
+          // 10Y G-Sec
+          if (data.gsec.dates.length) {
+            var xG = formatDateLabel(data.gsec.dates);
+            var hpGRes = hpFilterSeries(data.gsec.values, lambda);
+            var hpG = hpGRes.trend;
+            var cycleG = hpGRes.cycle;
+
+            Plotly.newPlot('hp-govsec-raw', [{
+              type: 'scatter',
+              mode: 'lines',
+              x: xG,
+              y: data.gsec.values,
+              name: '10Y G-Sec yield',
+              line: { color: '#dc2626', width: 2 },
+              hovertemplate: '<b>%{x}</b><br>Yield: %{y:.2f}%<extra></extra>'
+            }], Object.assign({}, layoutCommon, {
+              xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+              yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Yield (%)' })
+            }), config);
+
+            var tableRowsGRaw = xG.map(function (d, idx) {
+              var v = data.gsec.values[idx];
+              return [
+                d,
+                (v != null && isFinite(v)) ? v.toFixed(6) : ''
+              ];
+            });
+            renderTable('table-hp-govsec-raw', ['Date', 'Yield (%)'], tableRowsGRaw);
+
+            Plotly.newPlot('hp-govsec-trend', [{
+              type: 'scatter',
+              mode: 'lines',
+              x: xG,
+              y: data.gsec.values,
+              name: 'Yield (original)',
+              line: { color: '#fecaca', width: 1.5 },
+              hovertemplate: '<b>%{x}</b><br>Yield: %{y:.2f}%<extra></extra>'
+            }, {
+              type: 'scatter',
+              mode: 'lines',
+              x: xG,
+              y: hpG,
+              name: 'HP trend',
+              line: { color: '#b91c1c', width: 2 },
+              hovertemplate: '<b>%{x}</b><br>HP trend: %{y:.2f}%<extra></extra>'
+            }], Object.assign({}, layoutCommon, {
+              xaxis: Object.assign({}, layoutCommon.xaxis, { title: 'Date' }),
+              yaxis: Object.assign({}, layoutCommon.yaxis, { title: 'Yield (%)' })
+            }), config);
+
+            var tableRowsGTrend = xG.map(function (d, idx) {
+              var v = data.gsec.values[idx];
+              var tr = hpG[idx];
+              var cy = cycleG[idx];
+              return [
+                d,
+                (v != null && isFinite(v)) ? v.toFixed(6) : '',
+                (tr != null && isFinite(tr)) ? tr.toFixed(6) : '',
+                (cy != null && isFinite(cy)) ? cy.toFixed(6) : ''
+              ];
+            });
+            renderTable('table-hp-govsec-trend', ['Date', 'Yield (%)', 'HP trend (%)', 'Cycle (level)'], tableRowsGTrend);
+          }
+        });
+      }
+
+      function initHpTab() {
+        if (hpInitialized) return;
+        hpInitialized = true;
+
+        var slider = document.getElementById('hp-lambda-slider');
+        var input = document.getElementById('hp-lambda-input');
+        var presetButtons = document.querySelectorAll('button[data-hp-preset]');
+
+        function syncAndRender(newVal) {
+          var val = Math.max(1, Math.round(newVal));
+          setHpLambda(val);
+          renderHpCharts();
+        }
+
+        if (slider) {
+          slider.addEventListener('input', function () {
+            syncAndRender(parseFloat(slider.value));
+          });
+        }
+        if (input) {
+          input.addEventListener('change', function () {
+            var v = parseFloat(input.value);
+            if (!isFinite(v) || v <= 0) v = 14400;
+            syncAndRender(v);
+          });
+        }
+        presetButtons.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var v = parseFloat(btn.getAttribute('data-hp-preset'));
+            syncAndRender(v);
+          });
+        });
+
+        renderHpCharts();
+      }
+
+      function showTab(id) {
+        var ts = document.getElementById('tab-timeseries');
+        var hp = document.getElementById('tab-hp');
+        var btnTs = document.getElementById('tab-btn-timeseries');
+        var btnHp = document.getElementById('tab-btn-hp');
+        if (!ts || !hp || !btnTs || !btnHp) return;
+        if (id === 'hp') {
+          ts.style.display = 'none';
+          hp.style.display = '';
+          btnHp.style.background = '#2563eb';
+          btnHp.style.color = '#fff';
+          btnHp.style.borderColor = '#2563eb';
+          btnTs.style.background = '#e5e7eb';
+          btnTs.style.color = '#111827';
+          btnTs.style.borderColor = '#cbd5e1';
+          initHpTab();
+        } else {
+          ts.style.display = '';
+          hp.style.display = 'none';
+          btnTs.style.background = '#2563eb';
+          btnTs.style.color = '#fff';
+          btnTs.style.borderColor = '#2563eb';
+          btnHp.style.background = '#e5e7eb';
+          btnHp.style.color = '#111827';
+          btnHp.style.borderColor = '#cbd5e1';
+        }
+      }
+
+      renderM3();
+      renderGVAQ();
+      renderGOVSEC();
+
+      var tabBtnTs = document.getElementById('tab-btn-timeseries');
+      var tabBtnHp = document.getElementById('tab-btn-hp');
+      if (tabBtnTs) tabBtnTs.addEventListener('click', function () { showTab('timeseries'); });
+      if (tabBtnHp) tabBtnHp.addEventListener('click', function () { showTab('hp'); });
+      showTab('timeseries');
+
+      window.addEventListener('resize', function() {
+        Plotly.Plots.resize('chart-m3');
+        Plotly.Plots.resize('chart-gvaq');
+        Plotly.Plots.resize('chart-govsec');
+        if (hpInitialized) {
+          Plotly.Plots.resize('hp-m3-raw');
+          Plotly.Plots.resize('hp-m3-trend');
+          Plotly.Plots.resize('hp-credit-raw');
+          Plotly.Plots.resize('hp-credit-trend');
+          Plotly.Plots.resize('hp-govsec-raw');
+          Plotly.Plots.resize('hp-govsec-trend');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
