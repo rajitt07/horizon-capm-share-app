@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sector vs NIFTY Total Returns – Beta</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 1rem; background: #f5f5f5; color: #1a1a1a; }
+    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    .sub { color: #555; font-size: 0.9rem; margin-bottom: 1rem; }
+    .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 1rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 1rem; margin: 0 0 0.5rem; color: #333; }
+    pre, .formula { background: #f8f9fa; padding: 0.75rem; border-radius: 6px; font-size: 13px; overflow-x: auto; }
+    .formula { margin: 0.5rem 0; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f8f9fa; font-weight: 600; color: #333; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .error { color: #c00; }
+    #status { margin-top: 0.5rem; font-size: 13px; color: #666; }
+    .step { margin: 0.75rem 0; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .step:last-child { border-bottom: none; }
+    .step-title { font-weight: 600; color: #333; margin-bottom: 0.25rem; }
+    .step-formula { font-family: ui-monospace, monospace; font-size: 12px; color: #444; margin: 0.25rem 0; }
+    .step-value { font-family: ui-monospace, monospace; font-size: 13px; background: #f0f7ff; padding: 2px 6px; border-radius: 4px; }
+    #calcStepsWrap { margin-top: 0.5rem; }
+    #dataTableWrap { max-height: 320px; overflow: auto; margin: 0.5rem 0; }
+    .timeframe-list { max-height: 200px; overflow: auto; margin: 0.5rem 0; font-size: 12px; column-count: 3; column-gap: 1rem; }
+    .timeframe-list span { display: inline-block; padding: 2px 4px; }
+    select { font-size: 13px; padding: 6px 10px; margin: 0 0 0.5rem; min-width: 280px; }
+    .report-date { color: #555; font-size: 0.9rem; }
+    .regression-tbl { margin: 0.5rem 0; }
+    .interpretation { background: #f0f7ff; padding: 0.5rem 0.75rem; border-radius: 6px; margin: 0.5rem 0; font-size: 13px; }
+    #scatterWrap { width: 100%; max-width: 520px; height: 320px; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 6px; }
+    .no-print { }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+      .no-print { display: none !important; }
+      select { border: 1px solid #ccc; }
+      #dataTableWrap, .timeframe-list { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Sector vs NIFTY Total Returns – Beta &amp; Regression Analysis</h1>
+  <p class="report-date" id="reportDate">As of: —</p>
+  <p class="sub">Benchmark: NIFTY Total Returns (weekly). Sectors: BSE sector indices (weekly returns). OLS regression: R<sub>sector</sub> = α + β R<sub>market</sub> + ε.</p>
+
+  <div class="card">
+    <h2>Executive summary</h2>
+    <p id="status">Loading data…</p>
+    <p>This report estimates <strong>beta (β)</strong> and <strong>alpha (α)</strong> for each BSE sector index against the NIFTY Total Return Index using weekly returns. Beta measures the sector’s sensitivity to the market; alpha is the average weekly return in excess of the CAPM-implied level. All calculations use OLS regression; results are aligned by week-end date (Friday) and use only weeks present in both the benchmark and the sector series.</p>
+  </div>
+
+  <div class="card">
+    <h2>1. Data &amp; methodology</h2>
+    <p><strong>Benchmark (market return):</strong> NIFTY Total Return Index. <em>Weekly return</em> = sum of daily &quot;Change %&quot; over the week (Monday–Friday), converted to decimal. Source: <code>Data/industry data/test data/Analytics data/NIFTY Total Returns Historical Data_weekly_change_pct.csv</code>. Columns: <em>Week_End_Date</em>, <em>Weekly_Return</em>.</p>
+    <p><strong>Sector returns:</strong> BSE sector indices. <em>Weekly return</em> = (Close this Friday − Close previous Friday) / Close previous Friday (decimal). Source: <code>Data/sectoral indice beta calculation/3Y_weekly/</code> (one CSV per sector). Columns: <em>Week_End_Date</em>, <em>Weekly_Return</em>.</p>
+    <p><strong>Alignment:</strong> For each sector, only weeks with a common <em>Week_End_Date</em> in both the benchmark and the sector file are used; no interpolation. Week-end date is Friday.</p>
+    <p><strong>Model:</strong> For each sector we run OLS: R<sub>sector,t</sub> = α + β R<sub>market,t</sub> + ε<sub>t</sub>. Then β = Cov(R<sub>sector</sub>, R<sub>market</sub>) / Var(R<sub>market</sub>), α = μ<sub>sector</sub> − β μ<sub>market</sub>. R², standard errors, t-statistics and p-values (two-tailed, normal approximation) are reported.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Summary results (all sectors)</h2>
+    <p class="no-print"><button type="button" id="downloadCsvBtn">Download summary (CSV)</button></p>
+    <div id="tableWrap"></div>
+    <p style="margin-top:1rem;"><label for="sectorSelect"><strong>Select sector for regression output and detailed steps:</strong></label></p>
+    <select id="sectorSelect" class="no-print"></select>
+    <div id="calcStepsWrap"></div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var BENCHMARK_URL = '../../Data/industry data/test data/Analytics data/NIFTY Total Returns Historical Data_weekly_change_pct.csv';
+      var SECTOR_BASE = '../../Data/sectoral indice beta calculation/3Y_weekly/';
+      var SECTOR_FILES = [
+        'BSE 250 Microcap3csv.csv', 'BSE Auto3.csv', 'BSE CAP&Goods3.csv', 'BSE Consumer Discretionary3.csv',
+        'BSE Consumer Durables3.csv', 'BSE Energy3.csv', 'BSE FMCG3.csv', 'BSE Healthcare3.csv', 'BSE IT3.csv',
+        'BSE Metal3.csv', 'BSE Midcap3.csv', 'BSE OIL &GAS3.csv', 'BSE Power&energy3.csv', 'BSE Realty3.csv',
+        'BSE Services3.csv', 'BSE Smallcap3.csv', 'BSE Utilities3.csv', 'BSE bankex3.csv',
+        'BSE cap markets & insurance3.csv', 'BSE finserv3.csv', 'BSE industreis3.csv', 'BSE largecap3.csv'
+      ];
+
+      function parseCSV(text) {
+        var rows = [];
+        var lines = text.split(/\r?\n/);
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          var cells = [];
+          var inQuotes = false;
+          var cell = '';
+          for (var j = 0; j < line.length; j++) {
+            var ch = line[j];
+            if (ch === '"') inQuotes = !inQuotes;
+            else if ((ch === ',' && !inQuotes) || ch === '\r') {
+              cells.push(cell.trim());
+              cell = '';
+            } else if (ch !== '\r') cell += ch;
+          }
+          cells.push(cell.trim());
+          rows.push(cells);
+        }
+        return rows;
+      }
+
+      function parseWeeklyCSV(text) {
+        var rows = parseCSV(text);
+        if (rows.length < 2) return { dates: [], returns: [] };
+        var header = rows[0].map(function (h) { return (h || '').toLowerCase(); });
+        var dateIdx = header.indexOf('week_end_date');
+        var retIdx = header.indexOf('weekly_return');
+        if (dateIdx === -1) dateIdx = 0;
+        if (retIdx === -1) retIdx = 2;
+        var dates = [];
+        var returns = [];
+        for (var i = 1; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.length <= Math.max(dateIdx, retIdx)) continue;
+          var d = (r[dateIdx] || '').trim();
+          var v = parseFloat(String(r[retIdx]).replace(/,/g, ''));
+          if (!d || isNaN(v)) continue;
+          dates.push(d);
+          returns.push(v);
+        }
+        return { dates: dates, returns: returns };
+      }
+
+      function loadText(url) {
+        return fetch(url).then(function (res) {
+          if (!res.ok) throw new Error(url + ' ' + res.status);
+          return res.text();
+        });
+      }
+
+      function normCDF(z) {
+        var t = 1 / (1 + 0.2316419 * Math.abs(z));
+        var d = 0.3989423 * Math.exp(-z * z / 2);
+        var p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+        return z > 0 ? 1 - p : p;
+      }
+      function pValueTwoTailed(tStat) {
+        if (tStat !== tStat) return NaN;
+        return 2 * (1 - normCDF(Math.abs(tStat)));
+      }
+
+      function computeRegression(sectorReturns, marketReturns) {
+        var n = sectorReturns.length;
+        if (n < 3) return { beta: NaN, alpha: NaN, varMarket: NaN, covSM: NaN, n: n, r2: NaN, seBeta: NaN, seAlpha: NaN, tStatBeta: NaN, tStatAlpha: NaN, pValBeta: NaN, pValAlpha: NaN, residualSE: NaN };
+        var sumS = 0, sumM = 0;
+        for (var i = 0; i < n; i++) {
+          sumS += sectorReturns[i];
+          sumM += marketReturns[i];
+        }
+        var meanS = sumS / n;
+        var meanM = sumM / n;
+        var varM = 0, covSM = 0;
+        for (var j = 0; j < n; j++) {
+          var dm = marketReturns[j] - meanM;
+          var ds = sectorReturns[j] - meanS;
+          varM += dm * dm;
+          covSM += ds * dm;
+        }
+        varM /= n;
+        covSM /= n;
+        var beta = varM !== 0 ? covSM / varM : NaN;
+        var alpha = meanS - beta * meanM;
+        var ssRes = 0, ssTot = 0;
+        for (var k = 0; k < n; k++) {
+          var res = sectorReturns[k] - alpha - beta * marketReturns[k];
+          ssRes += res * res;
+          ssTot += (sectorReturns[k] - meanS) * (sectorReturns[k] - meanS);
+        }
+        var r2 = ssTot > 0 ? 1 - ssRes / ssTot : NaN;
+        var sigma2 = n > 2 ? ssRes / (n - 2) : 0;
+        var seBeta = (varM > 0 && n > 2) ? Math.sqrt(sigma2 / (n * varM)) : NaN;
+        var seAlpha = (varM > 0 && n > 2) ? Math.sqrt(sigma2 * (1 / n + meanM * meanM / (n * varM))) : NaN;
+        var tStatBeta = (seBeta > 0 && beta === beta) ? beta / seBeta : NaN;
+        var tStatAlpha = (seAlpha > 0 && alpha === alpha) ? alpha / seAlpha : NaN;
+        var residualSE = n > 2 ? Math.sqrt(sigma2) : NaN;
+        return {
+          beta: beta, alpha: alpha, varMarket: varM, covSM: covSM, n: n, r2: r2,
+          seBeta: seBeta, seAlpha: seAlpha, tStatBeta: tStatBeta, tStatAlpha: tStatAlpha,
+          pValBeta: pValueTwoTailed(tStatBeta), pValAlpha: pValueTwoTailed(tStatAlpha),
+          residualSE: residualSE
+        };
+      }
+
+      function alignReturns(sectorData, benchmarkDatesSet, benchmarkByDate) {
+        var dates = [];
+        var sectorR = [];
+        var marketR = [];
+        for (var i = 0; i < sectorData.dates.length; i++) {
+          var d = sectorData.dates[i];
+          if (!benchmarkDatesSet[d]) continue;
+          var mRet = benchmarkByDate[d];
+          if (mRet === undefined) continue;
+          dates.push(d);
+          sectorR.push(sectorData.returns[i]);
+          marketR.push(mRet);
+        }
+        return { dates: dates, sectorReturns: sectorR, marketReturns: marketR };
+      }
+
+      function renderTable(results) {
+        var wrap = document.getElementById('tableWrap');
+        if (!results.length) {
+          wrap.innerHTML = '<p class="error">No results. Check that CSV paths are loaded (use a local HTTP server).</p>';
+          return;
+        }
+        var html = '<table><thead><tr><th>Sector</th><th class="num">Beta</th><th class="num">Alpha</th><th class="num">R²</th><th class="num">SE(β)</th><th class="num">SE(α)</th><th class="num">N (weeks)</th><th class="num">Var(market)</th><th class="num">Cov(sector, market)</th></tr></thead><tbody>';
+        for (var i = 0; i < results.length; i++) {
+          var r = results[i];
+          var betaStr = isNaN(r.beta) ? '—' : r.beta.toFixed(4);
+          var alphaStr = isNaN(r.alpha) ? '—' : r.alpha.toFixed(6);
+          var r2Str = isNaN(r.r2) ? '—' : r.r2.toFixed(4);
+          var seBetaStr = isNaN(r.seBeta) ? '—' : r.seBeta.toFixed(4);
+          var seAlphaStr = isNaN(r.seAlpha) ? '—' : r.seAlpha.toFixed(6);
+          var varStr = isNaN(r.varMarket) ? '—' : r.varMarket.toExponential(4);
+          var covStr = isNaN(r.covSM) ? '—' : r.covSM.toExponential(4);
+          html += '<tr><td>' + escapeHtml(r.name) + '</td><td class="num">' + betaStr + '</td><td class="num">' + alphaStr + '</td><td class="num">' + r2Str + '</td><td class="num">' + seBetaStr + '</td><td class="num">' + seAlphaStr + '</td><td class="num">' + r.n + '</td><td class="num">' + varStr + '</td><td class="num">' + covStr + '</td></tr>';
+        }
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+      }
+
+      function renderSectorSelect(results) {
+        var sel = document.getElementById('sectorSelect');
+        sel.innerHTML = '';
+        for (var i = 0; i < results.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = results[i].name + ' (n=' + results[i].n + ')';
+          sel.appendChild(opt);
+        }
+      }
+
+      function fmtNum(x) {
+        if (typeof x !== 'number' || x !== x) return '—';
+        if (Math.abs(x) < 1e-4 && x !== 0) return x.toExponential(4);
+        return x.toFixed(6);
+      }
+
+      function renderCalcSteps(r) {
+        var wrap = document.getElementById('calcStepsWrap');
+        if (!r || r.n < 3) {
+          wrap.innerHTML = '<p class="error">No aligned data or too few points for this sector. Choose another.</p>';
+          return;
+        }
+        var dates = r.alignedDates;
+        var y = r.alignedSectorR;
+        var x = r.alignedMarketR;
+        var n = y.length;
+        var sumX = 0, sumY = 0;
+        for (var i = 0; i < n; i++) { sumX += x[i]; sumY += y[i]; }
+        var meanM = sumX / n;
+        var meanS = sumY / n;
+        var varM = 0, covSM = 0;
+        for (var j = 0; j < n; j++) {
+          var dm = x[j] - meanM;
+          var ds = y[j] - meanS;
+          varM += dm * dm;
+          covSM += ds * dm;
+        }
+        varM /= n;
+        covSM /= n;
+        var beta = varM !== 0 ? covSM / varM : NaN;
+        var alpha = meanS - beta * meanM;
+        var ssRes = 0, ssTot = 0;
+        for (var k = 0; k < n; k++) {
+          var res = y[k] - alpha - beta * x[k];
+          ssRes += res * res;
+          ssTot += (y[k] - meanS) * (y[k] - meanS);
+        }
+        var r2 = ssTot > 0 ? 1 - ssRes / ssTot : NaN;
+        var sigma2 = n > 2 ? ssRes / (n - 2) : 0;
+        var seBeta = (varM > 0 && n > 2) ? Math.sqrt(sigma2 / (n * varM)) : NaN;
+        var seAlpha = (varM > 0 && n > 2) ? Math.sqrt(sigma2 * (1 / n + meanM * meanM / (n * varM))) : NaN;
+        var tStatBeta = (seBeta > 0 && beta === beta) ? beta / seBeta : NaN;
+        var tStatAlpha = (seAlpha > 0 && alpha === alpha) ? alpha / seAlpha : NaN;
+        var pValBeta = pValueTwoTailed(tStatBeta);
+        var pValAlpha = pValueTwoTailed(tStatAlpha);
+        var residualSE = n > 2 ? Math.sqrt(sigma2) : NaN;
+        var adjR2 = n > 2 && r2 === r2 ? 1 - (1 - r2) * (n - 1) / (n - 2) : NaN;
+        var ci95Lo = (beta === beta && seBeta > 0) ? beta - 1.96 * seBeta : NaN;
+        var ci95Hi = (beta === beta && seBeta > 0) ? beta + 1.96 * seBeta : NaN;
+
+        var html = '<h3 style="margin-top:1rem;">3. Regression output: ' + escapeHtml(r.name) + '</h3>';
+        html += '<p><strong>Model:</strong> R<sub>sector,t</sub> = α + β R<sub>market,t</sub> + ε<sub>t</sub></p>';
+        html += '<div class="regression-tbl"><table><thead><tr><th>Coefficient</th><th class="num">Estimate</th><th class="num">Std. error</th><th class="num">t-statistic</th><th class="num">p-value (2-tailed)</th></tr></thead><tbody>';
+        html += '<tr><td>Intercept (α)</td><td class="num">' + fmtNum(alpha) + '</td><td class="num">' + fmtNum(seAlpha) + '</td><td class="num">' + fmtNum(tStatAlpha) + '</td><td class="num">' + fmtNum(pValAlpha) + '</td></tr>';
+        html += '<tr><td>Slope (β)</td><td class="num">' + fmtNum(beta) + '</td><td class="num">' + fmtNum(seBeta) + '</td><td class="num">' + fmtNum(tStatBeta) + '</td><td class="num">' + fmtNum(pValBeta) + '</td></tr>';
+        html += '</tbody></table></div>';
+        html += '<p><strong>Model statistics:</strong> <em>n</em> = ' + n + ', R² = ' + fmtNum(r2) + ', Adjusted R² = ' + fmtNum(adjR2) + ', Residual SE = ' + fmtNum(residualSE) + '</p>';
+        html += '<p><strong>95% CI for β:</strong> [' + fmtNum(ci95Lo) + ', ' + fmtNum(ci95Hi) + ']. <em>p-values use normal approximation; for small n use t-distribution (df = n−2).</em></p>';
+        html += '<div class="interpretation"><strong>Interpretation:</strong> Beta (β) = ' + fmtNum(beta) + ' is the estimated sensitivity of this sector’s weekly return to the market (NIFTY) weekly return. Alpha (α) = ' + fmtNum(alpha) + ' is the estimated average weekly intercept (excess return relative to the CAPM line).</div>';
+
+        html += '<p><strong>Scatter: sector return vs market return (OLS line)</strong></p>';
+        html += '<div id="scatterWrap"><canvas id="scatterCanvas" width="500" height="300"></canvas></div>';
+
+        html += '<h4 style="margin-top:1.5rem;">4. Data sources &amp; time frame</h4>';
+        html += '<div class="step"><div class="step-title">Data sources</div>';
+        html += '<p><strong>Benchmark (market):</strong> <code>Data/industry data/test data/Analytics data/NIFTY Total Returns Historical Data_weekly_change_pct.csv</code><br>';
+        html += 'Column used: <em>Week_End_Date</em>, <em>Weekly_Return</em>.</p>';
+        html += '<p><strong>Sector:</strong> <code>Data/sectoral indice beta calculation/3Y_weekly/' + escapeHtml(r.name) + '</code><br>';
+        html += 'Column used: <em>Week_End_Date</em>, <em>Weekly_Return</em>.</p>';
+        html += '<p>Weeks are aligned by matching <em>Week_End_Date</em>; only dates present in both files are used.</p></div>';
+
+        html += '<div class="step"><div class="step-title">Time frame and sample size</div>';
+        html += '<p><strong>Time frame:</strong> from <span class="step-value">' + escapeHtml(dates[0]) + '</span> to <span class="step-value">' + escapeHtml(dates[dates.length - 1]) + '</span> (' + n + ' weeks).</p>';
+        html += '<p><em>n</em> = number of aligned weeks = <span class="step-value">' + n + '</span></p>';
+        html += '<p><strong>Appendix: Week-end dates in the regression sample</strong></p>';
+        html += '<div class="timeframe-list">';
+        for (var t = 0; t < dates.length; t++) {
+          html += '<span>' + escapeHtml(dates[t]) + '</span>';
+        }
+        html += '</div></div>';
+
+        html += '<h4 style="margin-top:1rem;">5. Values used for computation (Week_End_Date, R_sector, R_market)</h4>';
+        html += '<div class="step"><div class="step-title">Aligned data</div>';
+        html += '<p>Every row below is used in the formulas. R_sector = sector weekly return (from sector file), R_market = benchmark weekly return (from benchmark file).</p>';
+        html += '<div id="dataTableWrap"><table><thead><tr><th>#</th><th>Week_End_Date</th><th class="num">R_sector</th><th class="num">R_market</th></tr></thead><tbody>';
+        for (var row = 0; row < n; row++) {
+          html += '<tr><td class="num">' + (row + 1) + '</td><td>' + escapeHtml(dates[row]) + '</td><td class="num">' + fmtNum(y[row]) + '</td><td class="num">' + fmtNum(x[row]) + '</td></tr>';
+        }
+        html += '</tbody></table></div></div>';
+
+        html += '<h4 style="margin-top:1rem;">6. Step-by-step calculation</h4>';
+        html += '<div class="step"><div class="step-title">Step 1: Mean of market returns</div>';
+        html += '<div class="step-formula">μ_m = (1/n) Σ R_m,i = (1/' + n + ') × (sum of R_market column)</div>';
+        html += '<p>Sum of market returns = <span class="step-value">' + fmtNum(sumX) + '</span><br>';
+        html += 'μ_m = <span class="step-value">' + fmtNum(sumX) + ' / ' + n + ' = ' + fmtNum(meanM) + '</span></p></div>';
+
+        html += '<div class="step"><div class="step-title">Step 2: Mean of sector returns</div>';
+        html += '<div class="step-formula">μ_s = (1/n) Σ R_s,i</div>';
+        html += '<p>Sum of sector returns = <span class="step-value">' + fmtNum(sumY) + '</span><br>';
+        html += 'μ_s = <span class="step-value">' + fmtNum(meanS) + '</span></p></div>';
+
+        html += '<div class="step"><div class="step-title">Step 3: Variance of market returns</div>';
+        html += '<div class="step-formula">Var(R_market) = (1/n) Σ (R_m,i − μ_m)²</div>';
+        html += '<p>Var(R_market) = <span class="step-value">' + fmtNum(varM) + '</span></p></div>';
+
+        html += '<div class="step"><div class="step-title">Step 4: Covariance (sector, market)</div>';
+        html += '<div class="step-formula">Cov(R_sector, R_market) = (1/n) Σ (R_s,i − μ_s)(R_m,i − μ_m)</div>';
+        html += '<p>Cov = <span class="step-value">' + fmtNum(covSM) + '</span></p></div>';
+
+        html += '<div class="step"><div class="step-title">Step 5: Beta (regression slope)</div>';
+        html += '<div class="step-formula">β = Cov(R_sector, R_market) / Var(R_market)</div>';
+        html += '<p>β = <span class="step-value">' + fmtNum(covSM) + ' / ' + fmtNum(varM) + ' = ' + fmtNum(beta) + '</span></p></div>';
+
+        html += '<div class="step"><div class="step-title">Step 6: Alpha (regression intercept)</div>';
+        html += '<div class="step-formula">α = μ_s − β × μ_m</div>';
+        html += '<p>α = <span class="step-value">' + fmtNum(meanS) + ' − ' + fmtNum(beta) + ' × ' + fmtNum(meanM) + ' = ' + fmtNum(alpha) + '</span></p></div>';
+
+        html += '<div class="step"><div class="step-title">Step 7: R² (coefficient of determination)</div>';
+        html += '<div class="step-formula">Residuals: e_i = R_s,i − α − β×R_m,i. SS_res = Σ e_i², SS_tot = Σ (R_s,i − μ_s)². R² = 1 − SS_res/SS_tot</div>';
+        html += '<p>SS_res = <span class="step-value">' + fmtNum(ssRes) + '</span>, SS_tot = <span class="step-value">' + fmtNum(ssTot) + '</span><br>';
+        html += 'R² = 1 − ' + fmtNum(ssRes) + ' / ' + fmtNum(ssTot) + ' = <span class="step-value">' + fmtNum(r2) + '</span></p></div>';
+
+        html += '<div class="step"><div class="step-title">Step 8: Standard errors, t-statistics, p-values, 95% CI</div>';
+        html += '<div class="step-formula">σ² = SS_res/(n−2). SE(β) = √(σ²/(n×Var_m)). SE(α) = √(σ²×(1/n + μ_m²/(n×Var_m)))<br>';
+        html += 't = Estimate/SE. p-value = two-tailed (normal approximation). 95% CI for β: β ± 1.96×SE(β)</div>';
+        html += '<p>σ² = <span class="step-value">' + fmtNum(sigma2) + '</span>, Residual SE = <span class="step-value">' + fmtNum(residualSE) + '</span><br>';
+        html += 'SE(β) = <span class="step-value">' + fmtNum(seBeta) + '</span>, t(β) = <span class="step-value">' + fmtNum(tStatBeta) + '</span>, p-value = <span class="step-value">' + fmtNum(pValBeta) + '</span>, 95% CI = [' + fmtNum(ci95Lo) + ', ' + fmtNum(ci95Hi) + ']<br>';
+        html += 'SE(α) = <span class="step-value">' + fmtNum(seAlpha) + '</span>, t(α) = <span class="step-value">' + fmtNum(tStatAlpha) + '</span>, p-value = <span class="step-value">' + fmtNum(pValAlpha) + '</span></p></div>';
+
+        wrap.innerHTML = html;
+        drawScatter('scatterCanvas', x, y, alpha, beta);
+      }
+
+      function drawScatter(canvasId, x, y, alpha, beta) {
+        var canvas = document.getElementById(canvasId);
+        if (!canvas || !x.length) return;
+        var ctx = canvas.getContext('2d');
+        var w = canvas.width;
+        var h = canvas.height;
+        var pad = { left: 50, right: 20, top: 20, bottom: 40 };
+        var plotW = w - pad.left - pad.right;
+        var plotH = h - pad.top - pad.bottom;
+        var minX = Math.min.apply(null, x);
+        var maxX = Math.max.apply(null, x);
+        var minY = Math.min.apply(null, y);
+        var maxY = Math.max.apply(null, y);
+        var margin = 0.05;
+        var rangeX = (maxX - minX) || 0.01;
+        var rangeY = (maxY - minY) || 0.01;
+        minX -= rangeX * margin;
+        maxX += rangeX * margin;
+        minY -= rangeY * margin;
+        maxY += rangeY * margin;
+        rangeX = maxX - minX;
+        rangeY = maxY - minY;
+        function toPxX(v) { return pad.left + (v - minX) / rangeX * plotW; }
+        function toPxY(v) { return pad.top + plotH - (v - minY) / rangeY * plotH; }
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#333';
+        ctx.strokeRect(pad.left, pad.top, plotW, plotH);
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#333';
+        ctx.fillText('R_market', pad.left + plotW / 2 - 30, h - 8);
+        ctx.save();
+        ctx.translate(12, pad.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('R_sector', 0, 0);
+        ctx.restore();
+        var lineY0 = alpha + beta * minX;
+        var lineY1 = alpha + beta * maxX;
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(200,0,0,0.8)';
+        ctx.lineWidth = 2;
+        ctx.moveTo(toPxX(minX), toPxY(lineY0));
+        ctx.lineTo(toPxX(maxX), toPxY(lineY1));
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(0,0,120,0.5)';
+        for (var i = 0; i < x.length; i++) {
+          ctx.beginPath();
+          ctx.arc(toPxX(x[i]), toPxY(y[i]), 3, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
+
+      function escapeHtml(s) {
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      var statusEl = document.getElementById('status');
+
+      loadText(BENCHMARK_URL).then(function (text) {
+        var bench = parseWeeklyCSV(text);
+        var benchmarkByDate = {};
+        var benchmarkDatesSet = {};
+        for (var i = 0; i < bench.dates.length; i++) {
+          benchmarkByDate[bench.dates[i]] = bench.returns[i];
+          benchmarkDatesSet[bench.dates[i]] = true;
+        }
+        statusEl.textContent = 'Benchmark loaded: ' + bench.dates.length + ' weeks. Loading sectors…';
+
+        var promises = SECTOR_FILES.map(function (name) {
+          return loadText(SECTOR_BASE + encodeURIComponent(name)).then(function (t) {
+            return { name: name, data: parseWeeklyCSV(t) };
+          }).catch(function (err) {
+            return { name: name, error: err.message };
+          });
+        });
+
+        return Promise.all(promises).then(function (sectors) {
+          var results = [];
+          for (var s = 0; s < sectors.length; s++) {
+            var sec = sectors[s];
+            if (sec.error) {
+              results.push({ name: sec.name, beta: NaN, alpha: NaN, r2: NaN, seBeta: NaN, seAlpha: NaN, varMarket: NaN, covSM: NaN, n: 0, alignedDates: [], alignedSectorR: [], alignedMarketR: [] });
+              continue;
+            }
+            var aligned = alignReturns(sec.data, benchmarkDatesSet, benchmarkByDate);
+            var stats = computeRegression(aligned.sectorReturns, aligned.marketReturns);
+            results.push({
+              name: sec.name,
+              beta: stats.beta,
+              alpha: stats.alpha,
+              r2: stats.r2,
+              seBeta: stats.seBeta,
+              seAlpha: stats.seAlpha,
+              varMarket: stats.varMarket,
+              covSM: stats.covSM,
+              n: stats.n,
+              alignedDates: aligned.sectorReturns.length ? aligned.dates : [],
+              alignedSectorR: aligned.sectorReturns.slice(),
+              alignedMarketR: aligned.marketReturns.slice()
+            });
+          }
+          statusEl.textContent = 'Benchmark: ' + bench.dates.length + ' weeks. Beta computed for ' + results.length + ' sectors (aligned by common Week_End_Date).';
+          document.getElementById('reportDate').textContent = 'As of: ' + new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+          renderTable(results);
+          renderSectorSelect(results);
+          var firstWithData = 0;
+          for (var i = 0; i < results.length; i++) { if (results[i].n >= 3) { firstWithData = i; break; } }
+          var selEl = document.getElementById('sectorSelect');
+          selEl.value = String(firstWithData);
+          renderCalcSteps(results[firstWithData]);
+          selEl.addEventListener('change', function () {
+            var idx = parseInt(this.value, 10);
+            if (idx >= 0 && results[idx]) renderCalcSteps(results[idx]);
+          });
+          document.getElementById('downloadCsvBtn').onclick = function () {
+            var headers = ['Sector', 'Beta', 'Alpha', 'R_squared', 'SE_beta', 'SE_alpha', 'N_weeks', 'Var_market', 'Cov_sector_market'];
+            var rows = [headers.join(',')];
+            for (var i = 0; i < results.length; i++) {
+              var r = results[i];
+              rows.push([
+                '"' + (r.name || '').replace(/"/g, '""') + '"',
+                r.beta === r.beta ? r.beta : '',
+                r.alpha === r.alpha ? r.alpha : '',
+                r.r2 === r.r2 ? r.r2 : '',
+                r.seBeta === r.seBeta ? r.seBeta : '',
+                r.seAlpha === r.seAlpha ? r.seAlpha : '',
+                r.n,
+                r.varMarket === r.varMarket ? r.varMarket : '',
+                r.covSM === r.covSM ? r.covSM : ''
+              ].join(','));
+            }
+            var blob = new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'beta_regression_summary.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+          };
+        });
+      }).catch(function (err) {
+        statusEl.innerHTML = '<span class="error">Failed to load data: ' + escapeHtml(err.message) + '. Open this page via an HTTP server (e.g. from the repo root) so fetch() can load the CSV files.</span>';
+        document.getElementById('tableWrap').innerHTML = '';
+      });
+    })();
+  </script>
+</body>
+</html>
