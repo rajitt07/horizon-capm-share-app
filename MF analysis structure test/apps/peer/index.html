@@ -45,6 +45,111 @@
         align-items: center;
         gap: 8px;
       }
+      .top-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin: 6px 0 12px 0;
+      }
+      .toggle-group {
+        display: inline-flex;
+        gap: 8px;
+      }
+      .mode-toggle.is-active {
+        border-color: #4d7cff;
+        color: #b8c9ff;
+      }
+      .horizon-select {
+        background: #0f1320;
+        color: #e6e8ee;
+        border: 1px solid #2a3350;
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 13px;
+      }
+      .summary-row {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 12px 0 12px 0;
+      }
+      .summary-box {
+        background: #0f1320;
+        border: 1px solid #2a3350;
+        border-radius: 10px;
+        padding: 10px;
+      }
+      .summary-box.fund-row {
+        border-left-width: 4px;
+      }
+      .comparison-dashboard-wrap {
+        margin-top: 12px;
+      }
+      .comparison-dashboard-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #9aa3b2;
+        margin: 0 0 8px 2px;
+      }
+      .summary-label {
+        color: #9aa3b2;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .summary-value {
+        margin-top: 6px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #e6e8ee;
+      }
+      .summary-value.large {
+        font-size: 24px;
+      }
+      .summary-context {
+        margin-top: 4px;
+        font-size: 11px;
+        color: #9aa3b2;
+      }
+      .summary-sub {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #9aa3b2;
+      }
+      .fund-card-title {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: #cfd6e9;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .fund-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+        gap: 10px;
+      }
+      .fund-card-metric {
+        border-top: 1px solid #2a3350;
+        padding-top: 6px;
+      }
+      .delta-positive {
+        color: #7ddc8d;
+      }
+      .delta-negative {
+        color: #ff8a8a;
+      }
+      .metric-positive {
+        color: #7ddc8d;
+        font-weight: 700;
+      }
+      .metric-negative {
+        color: #ff8a8a;
+        font-weight: 700;
+      }
       .ranking-button.is-active {
         border-color: #4d7cff;
         color: #b8c9ff;
@@ -85,6 +190,15 @@
       .selector-actions {
         display: flex;
         gap: 8px;
+        align-items: center;
+      }
+      .category-filter {
+        background: #0f1320;
+        color: #e6e8ee;
+        border: 1px solid #2a3350;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
       }
       .peer-fund-list {
         max-height: 240px;
@@ -165,6 +279,13 @@
         text-align: left;
         font-weight: 700;
       }
+      .comparison-table thead th.fund-col {
+        cursor: pointer;
+      }
+      .comparison-table thead th.fund-col.is-active {
+        color: #b8c9ff;
+        border-bottom: 2px solid #4d7cff;
+      }
       .comparison-table thead th:first-child,
       .comparison-table tbody th {
         position: sticky;
@@ -242,6 +363,19 @@
           <div class="section-title">Peer Comparison (Direct Plan)</div>
           <button id="peer-ranking-toggle" type="button" class="ghost-button ranking-button">Ranking</button>
         </div>
+      <div class="top-controls">
+        <div class="toggle-group">
+          <button id="mode-prev" type="button" class="ghost-button mode-toggle is-active">Previous Month</button>
+          <button id="mode-latest" type="button" class="ghost-button mode-toggle">Latest Data</button>
+        </div>
+        <label for="horizon-select" class="hint">Horizon</label>
+        <select id="horizon-select" class="horizon-select">
+          <option value="1">1Y</option>
+          <option value="3">3Y</option>
+          <option value="5">5Y</option>
+          <option value="10">10Y</option>
+        </select>
+      </div>
       <div class="peer-controls">
         <input
           id="peer-search"
@@ -252,6 +386,9 @@
         <div class="selector-meta">
           <span id="peer-selected-count">Selected: 0</span>
           <div class="selector-actions">
+            <select id="peer-category-filter" class="category-filter" aria-label="Filter by Category">
+              <option value="">All Categories</option>
+            </select>
             <button id="peer-select-all" type="button" class="ghost-button">Select All</button>
             <button id="peer-clear" type="button" class="ghost-button">Clear</button>
           </div>
@@ -262,6 +399,10 @@
         <canvas id="peer-nav-chart" height="110"></canvas>
         <div class="hint">Daily NAV, rebased to 100 at 30-Sep-2025.</div>
       </div>
+      <div class="comparison-dashboard-wrap">
+        <div class="comparison-dashboard-title">Comparison Dashboard</div>
+        <div id="summary-row" class="summary-row"></div>
+      </div>
       <div id="peer-status" class="peer-status"></div>
       <div id="peer-details" class="peer-details"></div>
     </div>
@@ -270,6 +411,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <script>
       const comparisonXlsxUrl = "../../data/matched_only_sorted.xlsx";
+      const latestCsvUrl = "../../data/latest.csv";
       const amfiNavCsvUrl =
         "../../data/matched_only_sorted_amfi_nav_curve_funds_only_2025-09-30_to_2025-12-25.csv";
       const peerSearchInput = document.getElementById("peer-search");
@@ -279,16 +421,29 @@
       const peerSelectedCount = document.getElementById("peer-selected-count");
       const peerSelectAllButton = document.getElementById("peer-select-all");
       const peerClearButton = document.getElementById("peer-clear");
+      const peerCategoryFilter = document.getElementById("peer-category-filter");
       const peerRankingToggleButton = document.getElementById("peer-ranking-toggle");
+      const modePrevButton = document.getElementById("mode-prev");
+      const modeLatestButton = document.getElementById("mode-latest");
+      const horizonSelect = document.getElementById("horizon-select");
+      const summaryRow = document.getElementById("summary-row");
       const peerChartCanvas = document.getElementById("peer-nav-chart");
 
       const peerState = {
         funds: [],
+        datasets: {
+          previous: { funds: [], categoryAverageRows: new Map() },
+          latest: { funds: [], categoryAverageRows: new Map() },
+        },
         selectedSchemes: new Set(),
         navCache: new Map(),
         amfiNavByScheme: new Map(),
         categoryAverageRows: new Map(),
         rankMode: false,
+        mode: { previous: true, latest: false },
+        selectedHorizon: "1",
+        selectedCategoryFilter: "",
+        activeSummaryScheme: null,
         chart: null,
       };
       const maxSelectedFunds = 3;
@@ -318,6 +473,39 @@
 
       function normalizeKey(value) {
         return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+      }
+
+      function getHorizonFields(year) {
+        return {
+          ret: `Return ${year} Year (%) Direct`,
+          bench: `Return ${year} Year (%) Benchmark`,
+          alpha: `Alpha ${year}yr`,
+          ir: year === "10" ? "Information Ratio* 10 Year (Direct)" : `Information Ratio* ${year} Year (Direct)`,
+        };
+      }
+
+      function getActiveFunds() {
+        if (peerState.mode.previous && peerState.mode.latest) {
+          const prevFunds = peerState.datasets.previous.funds || [];
+          const latestMap = new Map((peerState.datasets.latest.funds || []).map((f) => [normalizeKey(f.scheme_name), f]));
+          return prevFunds.map((f) => latestMap.get(normalizeKey(f.scheme_name)) || f);
+        }
+        if (peerState.mode.latest) return peerState.datasets.latest.funds || [];
+        return peerState.datasets.previous.funds || [];
+      }
+
+      function getActiveCategoryAverageRows() {
+        if (peerState.mode.latest && !peerState.mode.previous) return peerState.datasets.latest.categoryAverageRows;
+        return peerState.datasets.previous.categoryAverageRows;
+      }
+
+      function setModeButtonState() {
+        modePrevButton?.classList.toggle("is-active", peerState.mode.previous);
+        modeLatestButton?.classList.toggle("is-active", peerState.mode.latest);
+      }
+
+      function applyModeFallback() {
+        if (!peerState.mode.previous && !peerState.mode.latest) peerState.mode.previous = true;
       }
 
       function getValue(row, key) {
@@ -431,25 +619,35 @@
 
       function getCategoryAverageValue(fund, fieldName) {
         const categoryKey = normalizeKey(fund?.category || "");
-        const avgSchemeKey = categoryToAverageSchemeKey[categoryKey];
-        if (!avgSchemeKey) {
-          return null;
-        }
-        const avgRow = peerState.categoryAverageRows.get(normalizeKey(avgSchemeKey));
+        if (!categoryKey) return null;
+        const avgSchemeKey =
+          categoryToAverageSchemeKey[categoryKey] || `category_avg_${categoryKey}`;
+        const avgRow = getActiveCategoryAverageRows().get(normalizeKey(avgSchemeKey));
         if (!avgRow) {
           return null;
         }
         return avgRow[fieldName];
       }
 
+      function getCategoryAverageValueFromDataset(fund, fieldName, datasetName) {
+        const categoryKey = normalizeKey(fund?.category || "");
+        if (!categoryKey) return null;
+        const avgSchemeKey =
+          categoryToAverageSchemeKey[categoryKey] || `category_avg_${categoryKey}`;
+        const map = peerState.datasets?.[datasetName]?.categoryAverageRows;
+        const avgRow = map?.get(normalizeKey(avgSchemeKey));
+        return avgRow ? avgRow[fieldName] : null;
+      }
+
       function computeFundScore(fund) {
-        const ret1 = toScoreNumber(fund["Return 1 Year (%) Direct"]);
-        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
+        const h = getHorizonFields(peerState.selectedHorizon);
+        const ret1 = toScoreNumber(fund[h.ret]);
+        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, h.ret));
         const aumChange = toScoreNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
         const ter = toScoreNumber(fund["ter_Direct Plan - Total TER (%)"]);
         const catTer = toScoreNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
-        const alpha1 = toScoreNumber(fund["Alpha 1yr"]);
-        const consistency1 = toScoreNumber(fund["Information Ratio* 1 Year (Direct)"]);
+        const alpha1 = toScoreNumber(fund[h.alpha]);
+        const consistency1 = toScoreNumber(fund[h.ir]);
         const navStd = toScoreNumber(fund["NAV Std Dev (Rebased)"]);
         const catNavStd =
           toScoreNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
@@ -465,13 +663,14 @@
       }
 
       function computeFundScoreDetails(fund) {
-        const ret1 = toScoreNumber(fund["Return 1 Year (%) Direct"]);
-        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, "Return 1 Year (%) Direct"));
+        const h = getHorizonFields(peerState.selectedHorizon);
+        const ret1 = toScoreNumber(fund[h.ret]);
+        const catRet1 = toScoreNumber(getCategoryAverageValue(fund, h.ret));
         const aumChange = toScoreNumber(fund["aum diff"] ?? fund["AUM Change Dec"]);
         const ter = toScoreNumber(fund["ter_Direct Plan - Total TER (%)"]);
         const catTer = toScoreNumber(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)"));
-        const alpha1 = toScoreNumber(fund["Alpha 1yr"]);
-        const consistency1 = toScoreNumber(fund["Information Ratio* 1 Year (Direct)"]);
+        const alpha1 = toScoreNumber(fund[h.alpha]);
+        const consistency1 = toScoreNumber(fund[h.ir]);
         const navStd = toScoreNumber(fund["NAV Std Dev (Rebased)"]);
         const catNavStd =
           toScoreNumber(fund["Category Avg NAV Std Dev (Rebased)"]) ??
@@ -509,12 +708,52 @@
       }
 
       function getDisplayedFunds() {
-        if (!peerState.rankMode) return peerState.funds;
-        return [...peerState.funds].sort((a, b) => {
+        const activeFunds = getActiveFunds();
+        if (!peerState.rankMode) return activeFunds;
+        return [...activeFunds].sort((a, b) => {
           const scoreDiff = computeFundScore(b) - computeFundScore(a);
           if (scoreDiff !== 0) return scoreDiff;
           return String(a.scheme_name || "").localeCompare(String(b.scheme_name || ""));
         });
+      }
+
+      function getFilteredDisplayedFunds() {
+        const categoryFilter = normalizeKey(peerState.selectedCategoryFilter || "");
+        return getDisplayedFunds().filter((fund) => {
+          if (!categoryFilter) return true;
+          return normalizeKey(fund.category) === categoryFilter;
+        });
+      }
+
+      function updateCategoryFilterOptions() {
+        if (!peerCategoryFilter) return;
+        const current = normalizeKey(peerState.selectedCategoryFilter || "");
+        const categories = [];
+        const seen = new Set();
+        getDisplayedFunds().forEach((fund) => {
+          const raw = String(fund.category || "").trim();
+          const key = normalizeKey(raw);
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          categories.push({ key, label: raw });
+        });
+        categories.sort((a, b) => a.label.localeCompare(b.label));
+
+        peerCategoryFilter.innerHTML = "";
+        const allOpt = document.createElement("option");
+        allOpt.value = "";
+        allOpt.textContent = "All Categories";
+        peerCategoryFilter.appendChild(allOpt);
+        categories.forEach((cat) => {
+          const opt = document.createElement("option");
+          opt.value = cat.key;
+          opt.textContent = cat.label;
+          peerCategoryFilter.appendChild(opt);
+        });
+
+        const hasCurrent = current && categories.some((c) => c.key === current);
+        peerCategoryFilter.value = hasCurrent ? current : "";
+        peerState.selectedCategoryFilter = hasCurrent ? current : "";
       }
 
       function updateRankingButtonState() {
@@ -522,10 +761,20 @@
         peerRankingToggleButton.classList.toggle("is-active", peerState.rankMode);
       }
 
+      function getActiveSummaryFund(selectedFunds) {
+        if (!selectedFunds?.length) return null;
+        const active = selectedFunds.find(
+          (f) => normalizeKey(f.scheme_name) === normalizeKey(peerState.activeSummaryScheme || "")
+        );
+        if (active) return active;
+        peerState.activeSummaryScheme = selectedFunds[0].scheme_name;
+        return selectedFunds[0];
+      }
+
       function renderPeerFundList() {
         const query = normalizeKey(peerSearchInput?.value || "");
         peerFundList.innerHTML = "";
-        const filtered = getDisplayedFunds().filter((fund) => {
+        const filtered = getFilteredDisplayedFunds().filter((fund) => {
           if (!query) return true;
           return (
             normalizeKey(fund.scheme_name).includes(query) ||
@@ -548,8 +797,14 @@
                 return;
               }
               peerState.selectedSchemes.add(fund.scheme_name);
+              if (!peerState.activeSummaryScheme) {
+                peerState.activeSummaryScheme = fund.scheme_name;
+              }
             } else {
               peerState.selectedSchemes.delete(fund.scheme_name);
+              if (normalizeKey(peerState.activeSummaryScheme || "") === normalizeKey(fund.scheme_name)) {
+                peerState.activeSummaryScheme = [...peerState.selectedSchemes][0] || null;
+              }
             }
             updatePeerSelectedCount();
             renderPeerFundList();
@@ -746,28 +1001,27 @@
         const colorByScheme = new Map(
           selectedFunds.map((fund, index) => [fund.scheme_name, fundLinePalette[index % fundLinePalette.length]])
         );
+        const h = getHorizonFields(peerState.selectedHorizon);
+        const sideBySide = peerState.mode.previous && peerState.mode.latest;
+
         const rows = [
           {
             label: "Score (out of 6)",
             renderCell: (fund) => {
               const details = computeFundScoreDetails(fund);
               const color = colorByScheme.get(fund.scheme_name) || "#e6e8ee";
-
               const wrap = document.createElement("div");
               wrap.className = "score-cell-wrap";
-
               const scoreText = document.createElement("span");
               scoreText.className = "score-value";
               scoreText.style.color = color;
               scoreText.textContent = `${details.total}/6`;
               wrap.appendChild(scoreText);
-
               const why = document.createElement("details");
               why.className = "score-details";
               const summary = document.createElement("summary");
               summary.textContent = "Why";
               why.appendChild(summary);
-
               const list = document.createElement("ul");
               list.className = "score-reason-list";
               details.reasons.forEach((reason) => {
@@ -782,58 +1036,43 @@
           },
           {
             label: "Current NAV",
-            getValue: (fund, nav) =>
-              nav?.matched ? `${format2(nav.latestNav)} (${safeText(nav.latestDate)})` : "NA",
+            getValue: (fund, nav) => (nav?.matched ? `${format2(nav.latestNav)} (${safeText(nav.latestDate)})` : "NA"),
           },
           { label: "Benchmark", getValue: (fund) => safeText(fund["Benchmark"]) },
           { label: "Riskometer", getValue: (fund) => safeText(fund["Riskometer Scheme"]) },
-          { label: "Return 1 Year (%) Direct", getValue: (fund) => format2(fund["Return 1 Year (%) Direct"]) },
-          { label: "Return 3 Year (%) Direct", getValue: (fund) => format2(fund["Return 3 Year (%) Direct"]) },
-          { label: "Return 5 Year (%) Direct", getValue: (fund) => format2(fund["Return 5 Year (%) Direct"]) },
-          { label: "Return 10 Year (%) Direct", getValue: (fund) => format2(fund["Return 10 Year (%) Direct"]) },
           {
-            label: "Category Avg Return 1 Year (%) Direct",
-            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 1 Year (%) Direct")),
+            label: `Return ${peerState.selectedHorizon}Y (%) Direct`,
+            getValue: (fund) => format2(fund[h.ret]),
+            colorize: (fund) => {
+              const ret = parseNumber(fund[h.ret]);
+              const cat = parseNumber(getCategoryAverageValue(fund, h.ret));
+              if (ret === null || cat === null) return "";
+              return ret >= cat ? "metric-positive" : "metric-negative";
+            },
+          },
+          { label: `Category Avg Return ${peerState.selectedHorizon}Y (%) Direct`, getValue: (fund) => format2(getCategoryAverageValue(fund, h.ret)) },
+          {
+            label: `Alpha ${peerState.selectedHorizon}Y`,
+            getValue: (fund) => format2(fund[h.alpha]),
+            colorize: (fund) => {
+              const v = parseNumber(fund[h.alpha]);
+              if (v === null) return "";
+              return v > 0 ? "metric-positive" : "metric-negative";
+            },
           },
           {
-            label: "Category Avg Return 3 Year (%) Direct",
-            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 3 Year (%) Direct")),
+            label: `Consistency ${peerState.selectedHorizon}Y (Direct)`,
+            getValue: (fund) => format2(fund[h.ir]),
+            colorize: (fund) => {
+              const v = parseNumber(fund[h.ir]);
+              if (v === null) return "";
+              return v > 1 ? "metric-positive" : "metric-negative";
+            },
           },
-          {
-            label: "Category Avg Return 5 Year (%) Direct",
-            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 5 Year (%) Direct")),
-          },
-          {
-            label: "Category Avg Return 10 Year (%) Direct",
-            getValue: (fund) => format2(getCategoryAverageValue(fund, "Return 10 Year (%) Direct")),
-          },
-          { label: "Alpha 1yr", getValue: (fund) => format2(fund["Alpha 1yr"]) },
-          { label: "Alpha 3yr", getValue: (fund) => format2(fund["Alpha 3yr"]) },
-          { label: "Alpha 5yr", getValue: (fund) => format2(fund["Alpha 5yr"]) },
-          { label: "Alpha 10yr", getValue: (fund) => format2(fund["Alpha 10yr"]) },
           { label: "Return since launch", getValue: (fund) => format2(fund["Return Since Launch Direct"]) },
           { label: "Current AUM", getValue: (fund) => format2(fund["Daily AUM (Cr.)"]) },
           { label: "AUM Diff", getValue: (fund) => safeText(fund["aum diff"] || fund["AUM Change Dec"]) },
-          {
-            label: "Consistency 1Y (Direct)",
-            getValue: (fund) => format2(fund["Information Ratio* 1 Year (Direct)"]),
-          },
-          {
-            label: "Consistency 3Y (Direct)",
-            getValue: (fund) => format2(fund["Information Ratio* 3 Year (Direct)"]),
-          },
-          {
-            label: "Consistency 5Y (Direct)",
-            getValue: (fund) => format2(fund["Information Ratio* 5 Year (Direct)"]),
-          },
-          {
-            label: "Consistency 10Y (Direct)",
-            getValue: (fund) => format2(fund["Information Ratio* 10 Year (Regular)"]),
-          },
-          {
-            label: "NAV Std Dev (Rebased)",
-            getValue: (fund) => format2(fund["NAV Std Dev (Rebased)"]),
-          },
+          { label: "NAV Std Dev (Rebased)", getValue: (fund) => format2(fund["NAV Std Dev (Rebased)"]) },
           {
             label: "Category Avg NAV Std Dev (Rebased)",
             getValue: (fund) =>
@@ -843,10 +1082,7 @@
               ),
           },
           { label: "Direct Total TER (%)", getValue: (fund) => format2(fund["ter_Direct Plan - Total TER (%)"]) },
-          {
-            label: "Category Avg Direct TER (%)",
-            getValue: (fund) => format2(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)")),
-          },
+          { label: "Category Avg Direct TER (%)", getValue: (fund) => format2(getCategoryAverageValue(fund, "ter_Direct Plan - Total TER (%)")) },
         ];
 
         const wrap = document.createElement("div");
@@ -858,26 +1094,53 @@
         const metricHead = document.createElement("th");
         metricHead.textContent = "Metric";
         headRow.appendChild(metricHead);
+
         selectedFunds.forEach((fund) => {
           const th = document.createElement("th");
+          th.classList.add("fund-col");
+          if (normalizeKey(fund.scheme_name) === normalizeKey(peerState.activeSummaryScheme || "")) {
+            th.classList.add("is-active");
+          }
           const title = document.createElement("span");
           title.textContent = safeText(fund.scheme_name);
           th.appendChild(title);
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "ghost-button compare-mini-btn";
-          btn.style.marginLeft = "8px";
-          btn.textContent = "Compare";
-          btn.disabled = selectedFunds.length >= maxSelectedFunds;
-          btn.addEventListener("click", async () => {
-            if (btn.disabled) {
-              peerStatus.textContent = `Comparison limit reached (max ${maxSelectedFunds} funds). Clear one to compare another.`;
-              return;
-            }
-            await handleCompareForFund(fund.scheme_name);
+          th.addEventListener("click", () => {
+            peerState.activeSummaryScheme = fund.scheme_name;
+            renderSummaryCards(selectedFunds);
+            renderPeerDetails(selectedFunds, navResults, consistencyColumns);
           });
-          th.appendChild(btn);
-          headRow.appendChild(th);
+          if (sideBySide) {
+            th.textContent = `${safeText(fund.scheme_name)} (Prev)`;
+            headRow.appendChild(th);
+            const thLatest = document.createElement("th");
+            thLatest.textContent = `${safeText(fund.scheme_name)} (Latest)`;
+            thLatest.classList.add("fund-col");
+            if (normalizeKey(fund.scheme_name) === normalizeKey(peerState.activeSummaryScheme || "")) {
+              thLatest.classList.add("is-active");
+            }
+            thLatest.addEventListener("click", () => {
+              peerState.activeSummaryScheme = fund.scheme_name;
+              renderSummaryCards(selectedFunds);
+              renderPeerDetails(selectedFunds, navResults, consistencyColumns);
+            });
+            headRow.appendChild(thLatest);
+          } else {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "ghost-button compare-mini-btn";
+            btn.style.marginLeft = "8px";
+            btn.textContent = "Compare";
+            btn.disabled = selectedFunds.length >= maxSelectedFunds;
+            btn.addEventListener("click", async () => {
+              if (btn.disabled) {
+                peerStatus.textContent = `Comparison limit reached (max ${maxSelectedFunds} funds). Clear one to compare another.`;
+                return;
+              }
+              await handleCompareForFund(fund.scheme_name);
+            });
+            th.appendChild(btn);
+            headRow.appendChild(th);
+          }
         });
         thead.appendChild(headRow);
         table.appendChild(thead);
@@ -890,14 +1153,35 @@
           tr.appendChild(th);
           selectedFunds.forEach((fund) => {
             const nav = navResults.get(fund.scheme_name);
-            const td = document.createElement("td");
-            if (typeof metric.renderCell === "function") {
-              td.classList.add("score-cell");
-              td.appendChild(metric.renderCell(fund, nav));
+            if (sideBySide) {
+              const prevFund = (peerState.datasets.previous.funds || []).find((f) => normalizeKey(f.scheme_name) === normalizeKey(fund.scheme_name));
+              const latestFund = (peerState.datasets.latest.funds || []).find((f) => normalizeKey(f.scheme_name) === normalizeKey(fund.scheme_name));
+              [prevFund, latestFund].forEach((vFund) => {
+                const td = document.createElement("td");
+                if (!vFund) {
+                  td.textContent = "NA";
+                } else if (typeof metric.renderCell === "function") {
+                  td.classList.add("score-cell");
+                  td.appendChild(metric.renderCell(vFund, nav));
+                } else {
+                  td.textContent = safeText(metric.getValue(vFund, nav));
+                  const cls = typeof metric.colorize === "function" ? metric.colorize(vFund) : "";
+                  if (cls) td.classList.add(cls);
+                }
+                tr.appendChild(td);
+              });
             } else {
-              td.textContent = safeText(metric.getValue(fund, nav));
+              const td = document.createElement("td");
+              if (typeof metric.renderCell === "function") {
+                td.classList.add("score-cell");
+                td.appendChild(metric.renderCell(fund, nav));
+              } else {
+                td.textContent = safeText(metric.getValue(fund, nav));
+                const cls = typeof metric.colorize === "function" ? metric.colorize(fund) : "";
+                if (cls) td.classList.add(cls);
+              }
+              tr.appendChild(td);
             }
-            tr.appendChild(td);
           });
           tbody.appendChild(tr);
         });
@@ -970,6 +1254,7 @@
       }
 
       async function refreshPeerComparison() {
+        peerState.funds = getActiveFunds();
         const selectedFunds = peerState.funds.filter((row) => peerState.selectedSchemes.has(row.scheme_name));
         if (!selectedFunds.length) {
           peerStatus.textContent = "Select one or more funds to view peer comparison.";
@@ -998,12 +1283,16 @@
         const consistencyColumns = pickConsistencyColumns(Object.keys(peerState.funds[0] || {}));
         renderPeerChart(selectedFunds, navResults);
         renderPeerDetails(selectedFunds, navResults, consistencyColumns);
+        renderSummaryCards(selectedFunds);
         peerStatus.textContent = statusLines.join("\n");
       }
 
       async function loadComparisonWorkbook() {
         const response = await fetch(comparisonXlsxUrl);
-        if (!response.ok) throw new Error(`Unable to load Comparison workbook (${response.status}).`);
+        if (!response.ok) {
+          peerState.datasets.previous = { funds: [], categoryAverageRows: new Map() };
+          return;
+        }
         const arrayBuffer = await response.arrayBuffer();
         const workbook = window.XLSX.read(arrayBuffer, { type: "array" });
         const firstSheetName = workbook.SheetNames[0];
@@ -1021,20 +1310,226 @@
           }))
           .filter((row) => row.scheme_name);
 
-        peerState.categoryAverageRows = new Map();
+        const categoryAverageRows = new Map();
         normalizedRows.forEach((row) => {
           if (normalizeKey(row.scheme_name).startsWith("category_avg_")) {
-            peerState.categoryAverageRows.set(normalizeKey(row.scheme_name), row);
+            categoryAverageRows.set(normalizeKey(row.scheme_name), row);
           }
         });
 
-        peerState.funds = normalizedRows.filter(
+        const funds = normalizedRows.filter(
           (row) => !normalizeKey(row.scheme_name).startsWith("category_avg_")
         );
-        peerState.selectedSchemes = new Set(peerState.funds.slice(0, 3).map((row) => row.scheme_name));
+        peerState.datasets.previous = { funds, categoryAverageRows };
+      }
+
+      function normalizeLatestRow(row) {
+        const normalized = {
+          ...row,
+          scheme_name: String(row["Scheme Name"] || row["scheme_name"] || "").trim(),
+          category: String(row["category"] || "").trim(),
+        };
+        ["1", "3", "5", "10"].forEach((year) => {
+          const f = getHorizonFields(year);
+          const ret = parseNumber(normalized[f.ret]);
+          const bm = parseNumber(normalized[f.bench]);
+          if (ret !== null && bm !== null) normalized[f.alpha] = ret - bm;
+        });
+        return normalized;
+      }
+
+      function computeDynamicCategoryAverages(funds) {
+        const grouped = new Map();
+        funds.forEach((fund) => {
+          const key = normalizeKey(fund.category);
+          if (!key) return;
+          if (!grouped.has(key)) grouped.set(key, []);
+          grouped.get(key).push(fund);
+        });
+        const map = new Map();
+        grouped.forEach((rows, key) => {
+          const mappedKey = categoryToAverageSchemeKey[key] || `category_avg_${key}`;
+          const avgRow = { scheme_name: mappedKey };
+          [
+            "Return 1 Year (%) Direct",
+            "Return 3 Year (%) Direct",
+            "Return 5 Year (%) Direct",
+            "Return 10 Year (%) Direct",
+            "ter_Direct Plan - Total TER (%)",
+            "NAV Std Dev (Rebased)",
+          ].forEach((field) => {
+            const vals = rows.map((r) => parseNumber(r[field])).filter((v) => v !== null);
+            if (vals.length) avgRow[field] = vals.reduce((a, b) => a + b, 0) / vals.length;
+          });
+          map.set(normalizeKey(mappedKey), avgRow);
+        });
+        return map;
+      }
+
+      async function loadLatestCsv() {
+        const response = await fetch(latestCsvUrl);
+        if (!response.ok) throw new Error(`Unable to load latest CSV (${response.status}).`);
+        const csvText = await response.text();
+        const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        if (!lines.length) {
+          peerState.datasets.latest = { funds: [], categoryAverageRows: new Map() };
+          return;
+        }
+        const headers = parseCsvRow(lines[0]);
+        const rows = [];
+        for (let i = 1; i < lines.length; i += 1) {
+          const cells = parseCsvRow(lines[i]);
+          const row = {};
+          headers.forEach((h, idx) => { row[h] = cells[idx] ?? null; });
+          rows.push(normalizeLatestRow(row));
+        }
+        const categoryAvgRowsFromCsv = new Map();
+        rows.forEach((row) => {
+          const key = normalizeKey(row.scheme_name);
+          if (key.startsWith("category_avg_")) {
+            categoryAvgRowsFromCsv.set(key, row);
+          }
+        });
+        const fundsOnly = rows.filter(
+          (row) => row.scheme_name && !normalizeKey(row.scheme_name).startsWith("category_avg_")
+        );
+        const prevByScheme = new Map((peerState.datasets.previous.funds || []).map((f) => [normalizeKey(f.scheme_name), f]));
+        fundsOnly.forEach((fund) => {
+          if (!fund.category) fund.category = String(prevByScheme.get(normalizeKey(fund.scheme_name))?.category || "").trim();
+        });
+        const orderIndex = new Map((peerState.datasets.previous.funds || []).map((f, i) => [normalizeKey(f.scheme_name), i]));
+        fundsOnly.sort((a, b) => {
+          const ia = orderIndex.get(normalizeKey(a.scheme_name));
+          const ib = orderIndex.get(normalizeKey(b.scheme_name));
+          if (ia !== undefined && ib !== undefined) return ia - ib;
+          if (ia !== undefined) return -1;
+          if (ib !== undefined) return 1;
+          return String(a.scheme_name).localeCompare(String(b.scheme_name));
+        });
+        const computedCategoryAverages = computeDynamicCategoryAverages(fundsOnly);
+        const mergedCategoryAverages = new Map(computedCategoryAverages);
+        // Prefer explicit category_avg_* rows from latest.csv when present.
+        categoryAvgRowsFromCsv.forEach((row, key) => {
+          mergedCategoryAverages.set(key, row);
+        });
+        peerState.datasets.latest = { funds: fundsOnly, categoryAverageRows: mergedCategoryAverages };
+      }
+
+      function initSelectionFromActiveFunds() {
+        if (!peerState.datasets.previous.funds.length && peerState.datasets.latest.funds.length) {
+          peerState.mode.previous = false;
+          peerState.mode.latest = true;
+        }
+        peerState.funds = getActiveFunds();
+        const available = new Set(peerState.funds.map((f) => normalizeKey(f.scheme_name)));
+        const next = new Set([...peerState.selectedSchemes].filter((n) => available.has(normalizeKey(n))));
+        if (!next.size) getDisplayedFunds().slice(0, maxSelectedFunds).forEach((r) => next.add(r.scheme_name));
+        peerState.selectedSchemes = next;
+        updateCategoryFilterOptions();
+        const visible = new Set(getFilteredDisplayedFunds().map((f) => normalizeKey(f.scheme_name)));
+        peerState.selectedSchemes = new Set(
+          [...peerState.selectedSchemes].filter((name) => visible.has(normalizeKey(name)))
+        );
+        if (!peerState.selectedSchemes.size) {
+          getFilteredDisplayedFunds().slice(0, maxSelectedFunds).forEach((r) => peerState.selectedSchemes.add(r.scheme_name));
+        }
+        if (!peerState.selectedSchemes.has(peerState.activeSummaryScheme)) {
+          peerState.activeSummaryScheme = [...peerState.selectedSchemes][0] || null;
+        }
         updatePeerSelectedCount();
         updateRankingButtonState();
         renderPeerFundList();
+      }
+
+      function renderSummaryCards(selectedFunds) {
+        if (!summaryRow) return;
+        summaryRow.innerHTML = "";
+        if (!selectedFunds?.length) return;
+        const h = getHorizonFields(peerState.selectedHorizon);
+        const sideBySide = peerState.mode.previous && peerState.mode.latest;
+        selectedFunds.forEach((fund, index) => {
+          const fundColor = fundLinePalette[index % fundLinePalette.length];
+          const prevFund = (peerState.datasets.previous.funds || []).find(
+            (f) => normalizeKey(f.scheme_name) === normalizeKey(fund?.scheme_name)
+          );
+          const latestFund = (peerState.datasets.latest.funds || []).find(
+            (f) => normalizeKey(f.scheme_name) === normalizeKey(fund?.scheme_name)
+          );
+          const card = document.createElement("div");
+          card.className = "summary-box fund-row";
+          card.style.borderLeftColor = fundColor;
+          const title = document.createElement("div");
+          title.className = "fund-card-title";
+          title.textContent = safeText(fund.scheme_name);
+          title.style.color = fundColor;
+          card.appendChild(title);
+          const metricsWrap = document.createElement("div");
+          metricsWrap.className = "fund-metrics-grid";
+
+          const metrics = [
+            {
+              label: `Return ${peerState.selectedHorizon}Y (%) Direct`,
+              prevVal: parseNumber(prevFund?.[h.ret]),
+              latestVal: parseNumber(latestFund?.[h.ret]),
+            },
+            {
+              label: `Category Avg Return ${peerState.selectedHorizon}Y (%) Direct`,
+              prevVal: parseNumber(
+                prevFund ? getCategoryAverageValueFromDataset(prevFund, h.ret, "previous") : null
+              ),
+              latestVal: parseNumber(
+                latestFund ? getCategoryAverageValueFromDataset(latestFund, h.ret, "latest") : null
+              ),
+            },
+            {
+              label: `Alpha ${peerState.selectedHorizon}Y`,
+              prevVal: parseNumber(prevFund?.[h.alpha]),
+              latestVal: parseNumber(latestFund?.[h.alpha]),
+            },
+            {
+              label: `Consistency ${peerState.selectedHorizon}Y (Direct)`,
+              prevVal: parseNumber(prevFund?.[h.ir]),
+              latestVal: parseNumber(latestFund?.[h.ir]),
+            },
+          ];
+
+          metrics.forEach((m) => {
+            const row = document.createElement("div");
+            row.className = "fund-card-metric";
+            const label = document.createElement("div");
+            label.className = "summary-label";
+            label.textContent = m.label;
+            const value = document.createElement("div");
+            value.className = "summary-value";
+            value.style.color = fundColor;
+            if (sideBySide) {
+              value.textContent = `Prev: ${m.prevVal === null ? "NA" : m.prevVal.toFixed(2)} | Latest: ${
+                m.latestVal === null ? "NA" : m.latestVal.toFixed(2)
+              }`;
+              const delta = document.createElement("div");
+              delta.className = "summary-sub";
+              if (m.prevVal !== null && m.latestVal !== null) {
+                const d = m.latestVal - m.prevVal;
+                delta.textContent = `Δ ${d >= 0 ? "+" : ""}${d.toFixed(2)}`;
+                delta.classList.add(d >= 0 ? "delta-positive" : "delta-negative");
+              } else {
+                delta.textContent = "Δ NA";
+              }
+              row.appendChild(label);
+              row.appendChild(value);
+              row.appendChild(delta);
+            } else {
+              const single = peerState.mode.latest ? m.latestVal : m.prevVal;
+              value.classList.add("large");
+              value.textContent = single === null ? "NA" : single.toFixed(2);
+              row.appendChild(label);
+              row.appendChild(value);
+            }
+            metricsWrap.appendChild(row);
+          });
+          card.appendChild(metricsWrap);
+          summaryRow.appendChild(card);
+        });
       }
 
       peerSearchInput?.addEventListener("input", renderPeerFundList);
@@ -1045,8 +1540,9 @@
       });
       peerSelectAllButton?.addEventListener("click", async () => {
         peerState.selectedSchemes = new Set(
-          getDisplayedFunds().slice(0, maxSelectedFunds).map((row) => row.scheme_name)
+          getFilteredDisplayedFunds().slice(0, maxSelectedFunds).map((row) => row.scheme_name)
         );
+        peerState.activeSummaryScheme = [...peerState.selectedSchemes][0] || null;
         peerStatus.textContent = `Selected first ${maxSelectedFunds} funds (comparison limit).`;
         updatePeerSelectedCount();
         renderPeerFundList();
@@ -1054,14 +1550,51 @@
       });
       peerClearButton?.addEventListener("click", async () => {
         peerState.selectedSchemes = new Set();
+        peerState.activeSummaryScheme = null;
         updatePeerSelectedCount();
         renderPeerFundList();
+        await refreshPeerComparison();
+      });
+      peerCategoryFilter?.addEventListener("change", async () => {
+        peerState.selectedCategoryFilter = String(peerCategoryFilter.value || "");
+        const visible = new Set(getFilteredDisplayedFunds().map((f) => normalizeKey(f.scheme_name)));
+        peerState.selectedSchemes = new Set(
+          [...peerState.selectedSchemes].filter((name) => visible.has(normalizeKey(name)))
+        );
+        if (!peerState.selectedSchemes.size) {
+          getFilteredDisplayedFunds().slice(0, maxSelectedFunds).forEach((r) => peerState.selectedSchemes.add(r.scheme_name));
+        }
+        peerState.activeSummaryScheme = [...peerState.selectedSchemes][0] || null;
+        updatePeerSelectedCount();
+        renderPeerFundList();
+        await refreshPeerComparison();
+      });
+
+      modePrevButton?.addEventListener("click", async () => {
+        peerState.mode.previous = !peerState.mode.previous;
+        applyModeFallback();
+        setModeButtonState();
+        initSelectionFromActiveFunds();
+        await refreshPeerComparison();
+      });
+      modeLatestButton?.addEventListener("click", async () => {
+        peerState.mode.latest = !peerState.mode.latest;
+        applyModeFallback();
+        setModeButtonState();
+        initSelectionFromActiveFunds();
+        await refreshPeerComparison();
+      });
+      horizonSelect?.addEventListener("change", async () => {
+        peerState.selectedHorizon = String(horizonSelect.value || "1");
         await refreshPeerComparison();
       });
 
       (async () => {
         try {
           await loadComparisonWorkbook();
+          await loadLatestCsv();
+          initSelectionFromActiveFunds();
+          setModeButtonState();
           await loadAmfiNavCsvData();
           await refreshPeerComparison();
         } catch (error) {
