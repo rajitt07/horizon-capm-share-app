@@ -617,12 +617,72 @@
         return byYear;
       }
 
+      function getLatestCategoryAverageFieldName(fieldName) {
+        const directMatch = {
+          "Return 1 Year (%) Direct": "Category Avg Return 1 Year (%) Direct",
+          "Return 3 Year (%) Direct": "Category Avg Return 3 Year (%) Direct",
+          "Return 5 Year (%) Direct": "Category Avg Return 5 Year (%) Direct",
+          "Return 10 Year (%) Direct": "Category Avg Return 10 Year (%) Direct",
+          "ter_Direct Plan - Total TER (%)": "Category Avg Direct TER (%)",
+          "NAV Std Dev (Rebased)": "Category Avg NAV Std Dev (Rebased)",
+          "Category Avg NAV Std Dev (Rebased)": "Category Avg NAV Std Dev (Rebased)",
+        };
+        return directMatch[fieldName] || null;
+      }
+
+      function getCategoryAverageFromFundRow(fund, fieldName) {
+        if (!fund || !fieldName) return null;
+        const candidates = [];
+        candidates.push(`Category Avg ${fieldName}`);
+        if (fieldName.includes(" Year ")) {
+          candidates.push(`Category Avg ${fieldName.replace(" Year ", "Y ")}`);
+        }
+        if (fieldName === "ter_Direct Plan - Total TER (%)") {
+          candidates.push("Category Avg Direct TER (%)");
+          candidates.push("Category Avg TER (%)");
+          candidates.push("ter_Direct Plan - Total TER (%)_Avg");
+        }
+        if (fieldName === "NAV Std Dev (Rebased)") {
+          candidates.push("Category Avg NAV Std Dev (Rebased)");
+        }
+        for (const key of candidates) {
+          if (fund[key] !== undefined && fund[key] !== null && fund[key] !== "") {
+            return fund[key];
+          }
+        }
+        const latestMapped = getLatestCategoryAverageFieldName(fieldName);
+        if (latestMapped && fund[latestMapped] !== undefined && fund[latestMapped] !== null && fund[latestMapped] !== "") {
+          return fund[latestMapped];
+        }
+        return null;
+      }
+
+      function getCategoryAverageRowsForFund(fund) {
+        const prevFunds = peerState.datasets.previous.funds || [];
+        if (prevFunds.some((f) => f === fund)) {
+          return peerState.datasets.previous.categoryAverageRows;
+        }
+        const latestFunds = peerState.datasets.latest.funds || [];
+        if (latestFunds.some((f) => f === fund)) {
+          return peerState.datasets.latest.categoryAverageRows;
+        }
+        return getActiveCategoryAverageRows();
+      }
+
       function getCategoryAverageValue(fund, fieldName) {
+        const rowValue = getCategoryAverageFromFundRow(fund, fieldName);
+        if (rowValue !== null) {
+          return rowValue;
+        }
         const categoryKey = normalizeKey(fund?.category || "");
         if (!categoryKey) return null;
         const avgSchemeKey =
           categoryToAverageSchemeKey[categoryKey] || `category_avg_${categoryKey}`;
-        const avgRow = getActiveCategoryAverageRows().get(normalizeKey(avgSchemeKey));
+        const map = getCategoryAverageRowsForFund(fund);
+        let avgRow = map?.get(normalizeKey(avgSchemeKey));
+        if (!avgRow && peerState.categoryAverageRows?.size) {
+          avgRow = peerState.categoryAverageRows.get(normalizeKey(avgSchemeKey));
+        }
         if (!avgRow) {
           return null;
         }
@@ -630,12 +690,19 @@
       }
 
       function getCategoryAverageValueFromDataset(fund, fieldName, datasetName) {
+        const rowValue = getCategoryAverageFromFundRow(fund, fieldName);
+        if (rowValue !== null) {
+          return rowValue;
+        }
         const categoryKey = normalizeKey(fund?.category || "");
         if (!categoryKey) return null;
         const avgSchemeKey =
           categoryToAverageSchemeKey[categoryKey] || `category_avg_${categoryKey}`;
         const map = peerState.datasets?.[datasetName]?.categoryAverageRows;
-        const avgRow = map?.get(normalizeKey(avgSchemeKey));
+        let avgRow = map?.get(normalizeKey(avgSchemeKey));
+        if (!avgRow && peerState.categoryAverageRows?.size) {
+          avgRow = peerState.categoryAverageRows.get(normalizeKey(avgSchemeKey));
+        }
         return avgRow ? avgRow[fieldName] : null;
       }
 
@@ -1321,49 +1388,64 @@
           (row) => !normalizeKey(row.scheme_name).startsWith("category_avg_")
         );
         peerState.datasets.previous = { funds, categoryAverageRows };
+        peerState.categoryAverageRows = categoryAverageRows;
       }
 
       function normalizeLatestRow(row) {
         const normalized = {
           ...row,
           scheme_name: String(row["Scheme Name"] || row["scheme_name"] || "").trim(),
-          category: String(row["category"] || "").trim(),
+          category: String(row["category"] || row["Category"] || "").trim(),
         };
+        // Header alias mapping for latest.csv shorthand columns.
+        const aliasMap = {
+          "Return 3Y (%) Direct": "Return 3 Year (%) Direct",
+          "Return 5Y (%) Direct": "Return 5 Year (%) Direct",
+          "Return 10Y (%) Direct": "Return 10 Year (%) Direct",
+          "Category Avg Return 3Y (%) Direct": "Category Avg Return 3 Year (%) Direct",
+          "Category Avg Return 5Y (%) Direct": "Category Avg Return 5 Year (%) Direct",
+          "Category Avg Return 10Y (%) Direct": "Category Avg Return 10 Year (%) Direct",
+          "Consistency 3Y (Direct)": "Information Ratio* 3 Year (Direct)",
+          "Consistency 5Y (Direct)": "Information Ratio* 5 Year (Direct)",
+          "Consistency 10Y (Direct)": "Information Ratio* 10 Year (Direct)",
+        };
+        Object.entries(aliasMap).forEach(([sourceKey, targetKey]) => {
+          if (normalized[targetKey] !== undefined && normalized[targetKey] !== null && normalized[targetKey] !== "") return;
+          const sourceVal = row[sourceKey];
+          if (sourceVal === undefined || sourceVal === null || sourceVal === "") return;
+          const num = parseNumber(sourceVal);
+          normalized[targetKey] = num === null ? sourceVal : num;
+        });
+        // Normalize latest CSV columns to the same keys the XLSX path uses.
+        if (row["Direct Total TER (%)"] !== undefined && normalized["ter_Direct Plan - Total TER (%)"] === undefined) {
+          normalized["ter_Direct Plan - Total TER (%)"] = row["Direct Total TER (%)"];
+        }
+        if (row["Category Avg TER (%)"] !== undefined && normalized["Category Avg Direct TER (%)"] === undefined) {
+          normalized["Category Avg Direct TER (%)"] = row["Category Avg TER (%)"];
+        }
+        if (row["Category Avg Return 1Y (%) Direct"] !== undefined && normalized["Category Avg Return 1 Year (%) Direct"] === undefined) {
+          normalized["Category Avg Return 1 Year (%) Direct"] = row["Category Avg Return 1Y (%) Direct"];
+        }
+        if (row["Category Avg Return 3Y (%) Direct"] !== undefined && normalized["Category Avg Return 3 Year (%) Direct"] === undefined) {
+          normalized["Category Avg Return 3 Year (%) Direct"] = row["Category Avg Return 3Y (%) Direct"];
+        }
+        if (row["Category Avg Return 5Y (%) Direct"] !== undefined && normalized["Category Avg Return 5 Year (%) Direct"] === undefined) {
+          normalized["Category Avg Return 5 Year (%) Direct"] = row["Category Avg Return 5Y (%) Direct"];
+        }
+        if (row["Category Avg Return 10Y (%) Direct"] !== undefined && normalized["Category Avg Return 10 Year (%) Direct"] === undefined) {
+          normalized["Category Avg Return 10 Year (%) Direct"] = row["Category Avg Return 10Y (%) Direct"];
+        }
         ["1", "3", "5", "10"].forEach((year) => {
           const f = getHorizonFields(year);
+          const existingAlpha = parseNumber(normalized[f.alpha]);
+          if (existingAlpha !== null) {
+            return;
+          }
           const ret = parseNumber(normalized[f.ret]);
           const bm = parseNumber(normalized[f.bench]);
           if (ret !== null && bm !== null) normalized[f.alpha] = ret - bm;
         });
         return normalized;
-      }
-
-      function computeDynamicCategoryAverages(funds) {
-        const grouped = new Map();
-        funds.forEach((fund) => {
-          const key = normalizeKey(fund.category);
-          if (!key) return;
-          if (!grouped.has(key)) grouped.set(key, []);
-          grouped.get(key).push(fund);
-        });
-        const map = new Map();
-        grouped.forEach((rows, key) => {
-          const mappedKey = categoryToAverageSchemeKey[key] || `category_avg_${key}`;
-          const avgRow = { scheme_name: mappedKey };
-          [
-            "Return 1 Year (%) Direct",
-            "Return 3 Year (%) Direct",
-            "Return 5 Year (%) Direct",
-            "Return 10 Year (%) Direct",
-            "ter_Direct Plan - Total TER (%)",
-            "NAV Std Dev (Rebased)",
-          ].forEach((field) => {
-            const vals = rows.map((r) => parseNumber(r[field])).filter((v) => v !== null);
-            if (vals.length) avgRow[field] = vals.reduce((a, b) => a + b, 0) / vals.length;
-          });
-          map.set(normalizeKey(mappedKey), avgRow);
-        });
-        return map;
       }
 
       async function loadLatestCsv() {
@@ -1376,13 +1458,41 @@
           return;
         }
         const headers = parseCsvRow(lines[0]);
+        const headerMap = {
+          "Return 3Y (%) Direct": "Return 3 Year (%) Direct",
+          "Return 5Y (%) Direct": "Return 5 Year (%) Direct",
+          "Return 10Y (%) Direct": "Return 10 Year (%) Direct",
+          "Category Avg Return 1Y (%) Direct": "Category Avg Return 1 Year (%) Direct",
+          "Category Avg Return 3Y (%) Direct": "Category Avg Return 3 Year (%) Direct",
+          "Category Avg Return 5Y (%) Direct": "Category Avg Return 5 Year (%) Direct",
+          "Category Avg Return 10Y (%) Direct": "Category Avg Return 10 Year (%) Direct",
+          "Consistency 3Y (Direct)": "Information Ratio* 3 Year (Direct)",
+          "Consistency 5Y (Direct)": "Information Ratio* 5 Year (Direct)",
+          "Consistency 10Y (Direct)": "Information Ratio* 10 Year (Direct)",
+          "Category Avg Direct TER (%)": "ter_Direct Plan - Total TER (%)_Avg",
+        };
         const rows = [];
         for (let i = 1; i < lines.length; i += 1) {
           const cells = parseCsvRow(lines[i]);
           const row = {};
-          headers.forEach((h, idx) => { row[h] = cells[idx] ?? null; });
+          headers.forEach((h, idx) => {
+            const canonicalKey = headerMap[h] || h;
+            const raw = cells[idx] ?? null;
+            const parsed = parseNumber(raw);
+            const value = parsed === null ? raw : parsed;
+            if (row[canonicalKey] === undefined || row[canonicalKey] === null || row[canonicalKey] === "") {
+              row[canonicalKey] = value;
+            }
+          });
           rows.push(normalizeLatestRow(row));
         }
+        const fileOrder = new Map();
+        rows.forEach((row, idx) => {
+          const key = normalizeKey(row.scheme_name);
+          if (key && !key.startsWith("category_avg_")) {
+            fileOrder.set(key, idx);
+          }
+        });
         const categoryAvgRowsFromCsv = new Map();
         rows.forEach((row) => {
           const key = normalizeKey(row.scheme_name);
@@ -1393,26 +1503,33 @@
         const fundsOnly = rows.filter(
           (row) => row.scheme_name && !normalizeKey(row.scheme_name).startsWith("category_avg_")
         );
-        const prevByScheme = new Map((peerState.datasets.previous.funds || []).map((f) => [normalizeKey(f.scheme_name), f]));
+        const prevByScheme = new Map(
+          (peerState.datasets.previous.funds || []).map((f) => [normalizeKey(f.scheme_name), f])
+        );
         fundsOnly.forEach((fund) => {
-          if (!fund.category) fund.category = String(prevByScheme.get(normalizeKey(fund.scheme_name))?.category || "").trim();
+          if (!fund.category) {
+            fund.category = String(prevByScheme.get(normalizeKey(fund.scheme_name))?.category || "").trim();
+          }
         });
         const orderIndex = new Map((peerState.datasets.previous.funds || []).map((f, i) => [normalizeKey(f.scheme_name), i]));
         fundsOnly.sort((a, b) => {
-          const ia = orderIndex.get(normalizeKey(a.scheme_name));
-          const ib = orderIndex.get(normalizeKey(b.scheme_name));
+          const ka = normalizeKey(a.scheme_name);
+          const kb = normalizeKey(b.scheme_name);
+          const ia = orderIndex.get(ka);
+          const ib = orderIndex.get(kb);
           if (ia !== undefined && ib !== undefined) return ia - ib;
           if (ia !== undefined) return -1;
           if (ib !== undefined) return 1;
+          const fa = fileOrder.get(ka);
+          const fb = fileOrder.get(kb);
+          if (fa !== undefined && fb !== undefined && fa !== fb) return fa - fb;
           return String(a.scheme_name).localeCompare(String(b.scheme_name));
         });
-        const computedCategoryAverages = computeDynamicCategoryAverages(fundsOnly);
-        const mergedCategoryAverages = new Map(computedCategoryAverages);
-        // Prefer explicit category_avg_* rows from latest.csv when present.
-        categoryAvgRowsFromCsv.forEach((row, key) => {
-          mergedCategoryAverages.set(key, row);
-        });
-        peerState.datasets.latest = { funds: fundsOnly, categoryAverageRows: mergedCategoryAverages };
+        peerState.datasets.latest = {
+          funds: fundsOnly,
+          categoryAverageRows: categoryAvgRowsFromCsv,
+        };
+        peerState.categoryAverageRows = categoryAvgRowsFromCsv;
       }
 
       function initSelectionFromActiveFunds() {

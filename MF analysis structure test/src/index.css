@@ -1,0 +1,487 @@
+@import "@fontsource/geist-mono/400.css";
+@import "@fontsource/geist-mono/600.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Premium terminal — near-black canvas, emerald accent glow */
+:root {
+  --terminal-bg: #000000;
+  --terminal-surface: #0a0a0a;
+  --terminal-raised: #111111;
+  --terminal-border: rgba(255, 255, 255, 0.06);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply font-sans antialiased;
+  background-color: var(--terminal-bg);
+  background-image: radial-gradient(ellipse 100% 55% at 50% 0%, rgba(74, 222, 128, 0.045), transparent 52%);
+}
+
+.font-terminal,
+.terminal-metric-bar,
+.terminal-panel {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer components {
+  .cyber-process-btn {
+    @apply relative inline-flex items-center justify-center overflow-hidden rounded-xl py-4 text-white transition-all;
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    background: linear-gradient(165deg, #0a0a0a 0%, #050505 100%);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45) inset, 0 0 24px rgba(74, 222, 128, 0.08);
+  }
+
+  .cyber-process-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(74, 222, 128, 0.06), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .cyber-process-btn:hover:not(:disabled)::before {
+    opacity: 1;
+  }
+
+  .cyber-process-btn:hover:not(:disabled) {
+    border-color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 32px rgba(74, 222, 128, 0.12);
+  }
+
+  .cyber-process-btn:disabled {
+    @apply cursor-not-allowed opacity-70;
+  }
+
+  .process-analysis-btn {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold tracking-wide text-white shadow-lg transition-all;
+    background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .process-analysis-btn:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+
+  .process-analysis-btn:disabled {
+    @apply cursor-not-allowed opacity-80;
+  }
+
+  .process-analysis-btn.is-busy {
+    @apply opacity-95;
+  }
+
+  .analytics-card {
+    @apply rounded-2xl border border-white/[0.06] p-4 backdrop-blur-md;
+    background-color: var(--terminal-raised);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+      0 16px 48px rgba(0, 0, 0, 0.5);
+  }
+
+  .analytics-pill {
+    @apply rounded-2xl border border-white/[0.06] backdrop-blur-md shadow-lg shadow-black/50;
+    background-color: rgba(10, 10, 10, 0.95);
+  }
+
+  .glass-panel {
+    @apply rounded-xl border border-white/[0.06] backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.45)];
+    background-color: rgba(17, 17, 17, 0.9);
+  }
+
+  .sidebar-field {
+    @apply w-full rounded-lg border border-white/[0.08] bg-black/50 px-3 py-2 text-sm text-neutral-100 shadow-inner shadow-black/30 outline-none transition-colors placeholder:text-neutral-600;
+  }
+
+  .sidebar-field:focus {
+    @apply border-emerald-500/40 ring-1 ring-emerald-500/20;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors;
+    background: #22c55e;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #16a34a;
+  }
+
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-primary.is-loading {
+    animation: btn-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes btn-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
+@keyframes sidebar-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.sidebar-progress-track {
+  height: 3px;
+  overflow: hidden;
+  background: rgba(51, 65, 85, 0.6);
+  border-radius: 999px;
+}
+
+.sidebar-progress-bar {
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #15803d, #22c55e, #4ade80);
+  animation: sidebar-progress 1.1s ease-in-out infinite;
+}
+
+.panel {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: rgba(10, 10, 10, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/** Comparison stack: no max-height — scroll with the main column (single vertical flow). */
+.comparison-scroll {
+  overflow: visible;
+  min-height: 0;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 0;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.comparison-table-wide {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+
+.comparison-table-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+.comparison-fund-header,
+.comparison-fund-cell {
+  min-width: 300px;
+  box-sizing: border-box;
+}
+
+.comparison-sticky-label {
+  box-sizing: border-box;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.comparison-metric-data-row:hover th,
+.comparison-metric-data-row:hover td {
+  background: rgba(16, 185, 129, 0.07) !important;
+}
+
+.comparison-table th,
+.comparison-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: none;
+  padding: 11px 12px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.comparison-table .comparison-aum-cell {
+  padding-top: 11px;
+  padding-bottom: 11px;
+  line-height: 1.45;
+}
+
+.comparison-table tbody tr:nth-child(even) td,
+.comparison-table tbody tr:nth-child(even) th {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.comparison-table-polish tbody tr:nth-child(odd) td,
+.comparison-table-polish tbody tr:nth-child(odd) th {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.comparison-table-polish tbody tr:nth-child(even) td,
+.comparison-table-polish tbody tr:nth-child(even) th {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.comparison-table tbody tr:hover th,
+.comparison-table tbody tr:hover td {
+  background: rgba(16, 185, 129, 0.06);
+}
+
+/** Fund header row: not vertically sticky — scrolls with tbody like other rows. */
+.comparison-table thead.comparison-table-metric-header th {
+  position: static;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #e5e7eb;
+  text-align: left;
+  font-weight: 600;
+  padding: 11px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.comparison-table thead.comparison-table-metric-header th.fund-col {
+  cursor: pointer;
+  text-align: center;
+}
+
+.comparison-table thead.comparison-table-metric-header th.fund-col.is-active {
+  color: #6ee7b7;
+  box-shadow: inset 0 -2px 0 rgba(16, 185, 129, 0.85);
+}
+
+/** Metric label column (tbody): scrolls horizontally with the table. */
+.comparison-table tbody th {
+  position: static;
+  left: auto;
+  z-index: auto;
+  color: #d1d5db;
+  text-align: left;
+  font-weight: 600;
+  min-width: 220px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.comparison-table tbody th.comparison-metric-label-center {
+  text-align: center;
+}
+
+/** Corner “Metrics” header: same horizontal scroll as fund columns. */
+.comparison-table thead.comparison-table-metric-header th:first-child {
+  position: static;
+  left: auto;
+  top: auto;
+  z-index: auto;
+  box-shadow: none;
+}
+
+.comparison-table tbody tr:hover th {
+  background: rgba(8, 8, 8, 0.98);
+}
+
+.comparison-table tbody td {
+  position: relative;
+  z-index: 0;
+  color: #e5e7eb;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.comparison-table tbody td.comparison-fund-cell {
+  text-align: center;
+  font-weight: 600;
+}
+
+/** Allow multi-line benchmark names (table td defaults to nowrap). */
+.comparison-table tbody td.whitespace-normal {
+  white-space: normal;
+}
+
+.comparison-table tbody td.score-cell {
+  white-space: normal;
+}
+
+.comparison-table .num-cell {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.score-details {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #0a0a0a;
+  min-width: 190px;
+}
+
+.score-details summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #cbd5e1;
+  user-select: none;
+}
+
+.score-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.score-details[open] summary {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.score-reason-list {
+  margin: 0;
+  padding: 6px 10px 8px 18px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.score-reason-list li {
+  margin: 2px 0;
+}
+
+.ghost-button {
+  white-space: nowrap;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #e5e7eb;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ghost-button:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ghost-button.is-active {
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.peer-search {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  height: 38px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #f9fafb;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.peer-search:focus {
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+.peer-chart-wrap {
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  background: #0a0a0a;
+}
+
+/* Recharts: NAV curve legend wraps on small widths; labels match terminal muted text */
+.nav-curve-chart .recharts-default-legend {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  justify-content: flex-start;
+}
+
+.nav-curve-legend-label {
+  font-size: 11px;
+  color: rgb(148 163 184);
+}
+
+.horizon-select {
+  background: rgba(0, 0, 0, 0.55);
+  color: #f9fafb;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.horizon-select:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.file-drop {
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  padding: 14px 16px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.file-drop.drag-over {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.metric-positive {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.metric-negative {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.delta-arrow {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: middle;
+}

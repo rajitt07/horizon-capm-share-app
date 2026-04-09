@@ -7,3 +7,11 @@
 # Local backups
 *backup_before*.xlsx
 
+# Vite / Node
+node_modules/
+dist/
+.vite/
+
+# Build artifacts
+*.tsbuildinfo
+
