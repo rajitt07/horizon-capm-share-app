@@ -11,12 +11,19 @@ import {
 } from "../data/peerSuggestions";
 import { categorySelectDisplayLabel } from "../utils/categoryDisplay";
 
-function formatOptionLabel(f: IJoinedFund, meta: ReturnType<typeof getFundRankMeta> | undefined): string {
-  if (!meta) return f.schemeName;
-  const catPart =
-    meta.catRank != null && meta.catTotal != null ? `Cat ${meta.catRank}/${meta.catTotal}` : "Cat —";
-  const scorePart = meta.rankable ? `${meta.score}/5` : "NR";
-  return `${f.schemeName} · ${scorePart} · ${catPart}`;
+function OptionLabel({ f, meta }: { f: IJoinedFund; meta: ReturnType<typeof getFundRankMeta> | undefined }) {
+  const catPart = meta && meta.catRank != null && meta.catTotal != null ? `Cat ${meta.catRank}/${meta.catTotal}` : "Cat —";
+  const scorePart = meta ? (meta.rankable ? `${meta.score}/5` : "NR") : null;
+  return (
+    <span className="flex flex-col gap-0.5 min-w-0">
+      <span className="block text-slate-100 leading-snug">{f.schemeName}</span>
+      {scorePart != null ? (
+        <span className="block text-[10px] text-slate-500 leading-none">
+          {scorePart} · {catPart}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 /** Lower = stronger match (exact → prefix → word start → substring). No match = -1. */
@@ -448,21 +455,21 @@ export function ControlsBar(props: {
                 />
                 {canCompute && suggestionsOpen && schemeSearchQuery.trim() ? (
                   <ul
-                    className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-[min(40vh,280px)] overflow-y-auto rounded-lg border border-white/[0.12] bg-black/95 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
+                    className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-[min(50vh,360px)] overflow-y-auto rounded-lg border border-white/[0.12] bg-black/95 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
                     role="listbox"
                   >
                     {rankedSchemeSuggestions.length === 0 ? (
-                      <li className="px-3 py-2 text-[11px] text-slate-500">No matching schemes</li>
+                      <li className="px-3 py-2.5 text-xs text-slate-500">No matching schemes</li>
                     ) : (
                       rankedSchemeSuggestions.map((f) => (
                         <li key={f.schemeKey} role="option">
                           <button
                             type="button"
-                            className="w-full px-3 py-2 text-left text-[11px] leading-snug text-slate-200 hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none"
+                            className="w-full px-3 py-2.5 text-left text-xs transition-colors hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => pickFundFromSearch(f.schemeKey)}
                           >
-                            {formatOptionLabel(f, rankMetaByKey.get(f.schemeKey))}
+                            <OptionLabel f={f} meta={rankMetaByKey.get(f.schemeKey)} />
                           </button>
                         </li>
                       ))
@@ -575,7 +582,7 @@ export function ControlsBar(props: {
                 </button>
                 {browseOpen ? (
                   <ul
-                    className="absolute left-0 right-0 top-full z-[58] mt-1 max-h-[min(42vh,320px)] overflow-y-auto rounded-lg border border-white/[0.12] bg-black/95 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
+                    className="absolute left-0 right-0 top-full z-[58] mt-1 max-h-[min(55vh,420px)] overflow-y-auto rounded-lg border border-white/[0.12] bg-black/95 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
                     role="listbox"
                     aria-labelledby="pick-funds-dropdown-trigger"
                     aria-label={selectedCategory ? "Funds in selected category" : "All funds in bucket"}
@@ -590,12 +597,12 @@ export function ControlsBar(props: {
                             type="button"
                             disabled={disabledRow}
                             className={[
-                              "w-full px-3 py-2 text-left text-[11px] leading-snug transition-colors",
+                              "w-full px-3 py-2.5 text-left text-xs transition-colors",
                               selected
-                                ? "bg-emerald-500/15 text-emerald-100"
+                                ? "bg-emerald-500/15"
                                 : disabledRow
-                                  ? "cursor-not-allowed text-slate-600"
-                                  : "text-slate-200 hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none"
+                                  ? "cursor-not-allowed opacity-40"
+                                  : "hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none"
                             ].join(" ")}
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => pickFundFromBrowseDropdown(f.schemeKey)}
@@ -607,7 +614,7 @@ export function ControlsBar(props: {
                                   : "Add to comparison"
                             }
                           >
-                            {formatOptionLabel(f, rankMetaByKey.get(f.schemeKey))}
+                            <OptionLabel f={f} meta={rankMetaByKey.get(f.schemeKey)} />
                           </button>
                         </li>
                       );
