@@ -17,6 +17,7 @@ import { AlphaHorizonChart } from "./components/AlphaHorizonChart";
 import { clearAllDebugSession } from "./debugSession";
 import { MAX_SELECTABLE_FUNDS } from "./config/uiLimits";
 import { compareByScoreReturnAlphaWithRankable } from "./data/peerSuggestions";
+import CreditForecastTab from "./components/CreditForecastTab";
 
 const emptyBucket: IBucketData = {
   name: "",
@@ -65,6 +66,7 @@ export default function App() {
   const [copiedDebugBundle, setCopiedDebugBundle] = useState(false);
   /** Bumping remounts ControlsBar so peer/compare local state resets with Clear. */
   const [controlsBarMountKey, setControlsBarMountKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<"analysis" | "credit-forecast">("analysis");
 
   const processLockRef = useRef(false);
 
@@ -292,6 +294,31 @@ export default function App() {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+            {/* Tab switcher */}
+            <div className="flex items-center rounded-full border border-white/[0.1] bg-white/[0.03] p-0.5">
+              <button
+                type="button"
+                onClick={() => setActiveTab("analysis")}
+                className={`rounded-full px-3 py-1 font-terminal text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors ${
+                  activeTab === "analysis"
+                    ? "bg-white/[0.1] text-white"
+                    : "text-neutral-500 hover:text-neutral-300"
+                }`}
+              >
+                Analysis
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("credit-forecast")}
+                className={`rounded-full px-3 py-1 font-terminal text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors ${
+                  activeTab === "credit-forecast"
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-neutral-500 hover:text-neutral-300"
+                }`}
+              >
+                Credit Forecast
+              </button>
+            </div>
             {isProcessed && lastProcessed ? (
               <div className="text-[11px] text-accent-pos font-medium font-mono tabular-nums">Ready</div>
             ) : null}
@@ -428,8 +455,12 @@ export default function App() {
       </section>
 
       {/* Main workspace: metrics → dashboard (uploads + process live in the strip above). */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-black">
+      <div className={`flex min-w-0 flex-col ${activeTab === "credit-forecast" ? "flex-1 overflow-hidden" : "min-h-0 flex-1"}`}>
+        <main className={`relative flex min-h-0 min-w-0 flex-1 flex-col bg-black ${activeTab === "credit-forecast" ? "overflow-y-auto" : "overflow-hidden"}`}>
+          {activeTab === "credit-forecast" ? (
+            <CreditForecastTab />
+          ) : (
+          <>
           {processing ? <ProcessLoadingOverlay lines={processLog} active={processing} /> : null}
 
           <div className={`flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-5 lg:p-6 ${mainWorkspace ? "items-stretch" : ""}`}>
@@ -582,6 +613,8 @@ export default function App() {
               engine={metricsEngine}
             />
           </div>
+          </>
+          )}
         </main>
       </div>
     </div>
