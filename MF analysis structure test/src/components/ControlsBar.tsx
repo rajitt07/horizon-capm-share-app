@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { IBucketData, IFundRankingSnapshot, IJoinedFund, ITimeframeYears, IUiMode } from "../data/types";
 import type { MetricsEngine } from "../data/metrics";
 import {
@@ -10,15 +11,22 @@ import {
   type PeerScope
 } from "../data/peerSuggestions";
 import { categorySelectDisplayLabel } from "../utils/categoryDisplay";
+import { PARENT_CATEGORIES } from "../utils/parentCategories";
 
 function OptionLabel({ f, meta }: { f: IJoinedFund; meta: ReturnType<typeof getFundRankMeta> | undefined }) {
   const catPart = meta && meta.catRank != null && meta.catTotal != null ? `Cat ${meta.catRank}/${meta.catTotal}` : "Cat —";
-  const scorePart = meta ? (meta.rankable ? `${meta.score}/5` : "NR") : null;
+  const scorePart = meta
+    ? meta.rankable
+      ? `${meta.score}/5`
+      : meta.score > 0
+        ? `${meta.score}/5*`
+        : "NR"
+    : null;
   return (
     <span className="flex flex-col gap-0.5 min-w-0">
       <span className="block text-slate-100 leading-snug">{f.schemeName}</span>
       {scorePart != null ? (
-        <span className="block text-[10px] text-slate-500 leading-none">
+        <span className={`block text-[10px] leading-none ${meta?.rankable ? "text-slate-500" : "text-slate-600"}`}>
           {scorePart} · {catPart}
         </span>
       ) : null}
@@ -43,6 +51,8 @@ export function ControlsBar(props: {
   uiMode: IUiMode;
   onUiModeChange: (mode: IUiMode) => void;
   categories: string[];
+  selectedParentCategory: string;
+  onParentCategoryChange: (p: string) => void;
   selectedCategory: string;
   onCategoryChange: (c: string) => void;
   funds: IJoinedFund[];
@@ -70,6 +80,8 @@ export function ControlsBar(props: {
     uiMode,
     onUiModeChange,
     categories,
+    selectedParentCategory,
+    onParentCategoryChange,
     selectedCategory,
     onCategoryChange,
     funds,
@@ -104,8 +116,10 @@ export function ControlsBar(props: {
   const suppressCompareResetForPeerAddRef = useRef(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
+  const [browseDropdownPos, setBrowseDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const comboRootRef = useRef<HTMLDivElement>(null);
   const browseRootRef = useRef<HTMLDivElement>(null);
+  const browseTriggerRef = useRef<HTMLButtonElement>(null);
 
   const fundByKeyUniverse = useMemo(() => {
     const m = new Map<string, IJoinedFund>();
@@ -290,7 +304,6 @@ export function ControlsBar(props: {
   const pickFundFromBrowseDropdown = useCallback(
     (schemeKey: string) => {
       pickFundFromBrowse(schemeKey);
-      setBrowseOpen(false);
     },
     [pickFundFromBrowse]
   );
@@ -306,19 +319,40 @@ export function ControlsBar(props: {
   }, [suggestionsOpen]);
 
   useEffect(() => {
-    if (!browseOpen) return;
+    if (!browseOpen) {
+      setBrowseDropdownPos(null);
+      return;
+    }
+    const el = browseTriggerRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setBrowseDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
     const onDocMouseDown = (e: MouseEvent) => {
-      const el = browseRootRef.current;
-      if (el && !el.contains(e.target as Node)) setBrowseOpen(false);
+      const trigger = browseTriggerRef.current;
+      const target = e.target as Node;
+      if (trigger && trigger.contains(target)) return;
+      const portal = document.getElementById("browse-dropdown-portal");
+      if (portal && portal.contains(target)) return;
+      setBrowseOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setBrowseOpen(false);
     };
+    const onScroll = () => {
+      const el2 = browseTriggerRef.current;
+      if (el2) {
+        const rect = el2.getBoundingClientRect();
+        setBrowseDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+      }
+    };
     document.addEventListener("mousedown", onDocMouseDown);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       document.removeEventListener("mousedown", onDocMouseDown);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [browseOpen]);
 
@@ -394,14 +428,28 @@ export function ControlsBar(props: {
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
-            <label className="text-[11px] text-slate-500">Category</label>
+            <label className="text-[11px] text-slate-500">Sector</label>
+            <select
+              className="horizon-select text-xs py-1.5"
+              value={selectedParentCategory}
+              onChange={(e) => onParentCategoryChange(e.target.value)}
+              disabled={!canCompute}
+            >
+              <option value="">All Sectors</option>
+              {PARENT_CATEGORIES.map((p) => (
+                <option key={p.label} value={p.label}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <label className="text-[11px] text-slate-500">Sub-category</label>
             <select
               className="horizon-select text-xs py-1.5"
               value={selectedCategory}
               onChange={(e) => onCategoryChange(e.target.value)}
               disabled={!canCompute}
             >
-              <option value="">All Categories</option>
+              <option value="">All Sub-categories</option>
               {categories.map((c) => (
                 <option key={c} value={c}>
                   {categorySelectDisplayLabel(c)}
@@ -551,13 +599,14 @@ export function ControlsBar(props: {
               ) : null}
             </div>
 
-            {canCompute && selectedCategory && !funds.length ? (
+            {canCompute && (selectedCategory || selectedParentCategory) && !funds.length ? (
               <p className="text-[11px] text-amber-200/85 leading-snug">No funds in this category in the loaded data.</p>
             ) : null}
 
             {canCompute && funds.length > 0 ? (
               <div ref={browseRootRef} className="relative w-full">
                 <button
+                  ref={browseTriggerRef}
                   type="button"
                   className="peer-search flex w-full items-center justify-between gap-2 text-left text-sm text-slate-200"
                   onClick={() => {
@@ -571,7 +620,9 @@ export function ControlsBar(props: {
                   <span className="min-w-0 truncate">
                     {selectedCategory
                       ? `${categorySelectDisplayLabel(selectedCategory)} — ${funds.length} funds`
-                      : `All categories — ${funds.length} funds`}
+                      : selectedParentCategory
+                        ? `${selectedParentCategory} — ${funds.length} funds`
+                        : `All categories — ${funds.length} funds`}
                   </span>
                   <span
                     className={`shrink-0 text-[10px] text-slate-500 transition-transform duration-150 ${browseOpen ? "rotate-180" : ""}`}
@@ -580,47 +631,78 @@ export function ControlsBar(props: {
                     ▾
                   </span>
                 </button>
-                {browseOpen ? (
-                  <ul
-                    className="absolute left-0 right-0 top-full z-[58] mt-1 max-h-[min(55vh,420px)] overflow-y-auto rounded-lg border border-white/[0.12] bg-black/95 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
-                    role="listbox"
-                    aria-labelledby="pick-funds-dropdown-trigger"
-                    aria-label={selectedCategory ? "Funds in selected category" : "All funds in bucket"}
-                  >
-                    {funds.map((f) => {
-                      const selected = selectedSet.has(f.schemeKey);
-                      const atCap = selectedSchemeKeys.length >= maxSelected;
-                      const disabledRow = !selected && atCap;
-                      return (
-                        <li key={f.schemeKey} role="option" aria-selected={selected}>
-                          <button
-                            type="button"
-                            disabled={disabledRow}
-                            className={[
-                              "w-full px-3 py-2.5 text-left text-xs transition-colors",
-                              selected
-                                ? "bg-emerald-500/15"
-                                : disabledRow
-                                  ? "cursor-not-allowed opacity-40"
-                                  : "hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none"
-                            ].join(" ")}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => pickFundFromBrowseDropdown(f.schemeKey)}
-                            title={
-                              disabledRow
-                                ? `Selection full (${maxSelected} max)`
-                                : selected
-                                  ? "Selected — click to set as active"
-                                  : "Add to comparison"
-                            }
-                          >
-                            <OptionLabel f={f} meta={rankMetaByKey.get(f.schemeKey)} />
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : null}
+                {browseOpen && browseDropdownPos
+                  ? createPortal(
+                    <ul
+                      id="browse-dropdown-portal"
+                      className="fixed z-[9999] max-h-[min(55vh,420px)] overflow-y-auto rounded-lg border border-white/[0.12] bg-black/95 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
+                      style={{ top: browseDropdownPos.top, left: browseDropdownPos.left, width: browseDropdownPos.width }}
+                      role="listbox"
+                      aria-labelledby="pick-funds-dropdown-trigger"
+                      aria-label={selectedCategory ? "Funds in selected sub-category" : selectedParentCategory ? "Funds in selected sector" : "All funds in bucket"}
+                    >
+                      <li className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.08] bg-black/95 px-3 py-2 backdrop-blur-md">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                          {selectedSchemeKeys.filter((k) => funds.some((f) => f.schemeKey === k)).length} selected · {funds.length} funds
+                        </span>
+                        <button
+                          type="button"
+                          className="rounded px-2 py-0.5 text-[10px] font-semibold text-slate-400 hover:bg-white/[0.08] hover:text-slate-200"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setBrowseOpen(false)}
+                        >
+                          Done ✕
+                        </button>
+                      </li>
+                      {funds.map((f) => {
+                        const selected = selectedSet.has(f.schemeKey);
+                        const atCap = selectedSchemeKeys.length >= maxSelected;
+                        const disabledRow = !selected && atCap;
+                        return (
+                          <li key={f.schemeKey} role="option" aria-selected={selected}>
+                            <button
+                              type="button"
+                              disabled={disabledRow}
+                              className={[
+                                "w-full px-3 py-2.5 text-left text-xs transition-colors",
+                                selected
+                                  ? "bg-emerald-500/15"
+                                  : disabledRow
+                                    ? "cursor-not-allowed opacity-40"
+                                    : "hover:bg-white/[0.06] focus:bg-white/[0.08] focus:outline-none"
+                              ].join(" ")}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => pickFundFromBrowseDropdown(f.schemeKey)}
+                              title={
+                                disabledRow
+                                  ? `Selection full (${maxSelected} max)`
+                                  : selected
+                                    ? "Selected — click to set as active"
+                                    : "Add to comparison"
+                              }
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`shrink-0 w-3 text-center text-[10px] ${selected ? "text-emerald-400" : "text-transparent"}`}>✓</span>
+                                <OptionLabel f={f} meta={rankMetaByKey.get(f.schemeKey)} />
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                      <li className="sticky bottom-0 border-t border-white/[0.08] bg-black/95 px-3 py-2 backdrop-blur-md">
+                        <button
+                          type="button"
+                          className="w-full rounded-md border border-white/[0.1] py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 hover:border-emerald-500/40 hover:text-emerald-300 transition-colors"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setBrowseOpen(false)}
+                        >
+                          Done — close
+                        </button>
+                      </li>
+                    </ul>,
+                    document.body
+                  )
+                  : null}
               </div>
             ) : null}
 
@@ -629,26 +711,20 @@ export function ControlsBar(props: {
                 const f = fundByKeyUniverse.get(k);
                 const chipActive = activeSchemeKey === k;
                 const bothTint = uiMode === "both";
+                const chipBase = [
+                  "ghost-button text-xs py-1 pr-1 inline-flex items-center gap-1",
+                  bothTint
+                    ? chipActive
+                      ? "!border-cyan-400/55 !text-cyan-100 bg-teal-950/45 shadow-[0_0_14px_rgba(34,211,238,0.12)]"
+                      : "!border-cyan-500/30 !text-cyan-200/90 bg-teal-950/25 hover:!border-cyan-400/45 hover:bg-teal-950/40"
+                    : ""
+                ]
+                  .filter(Boolean)
+                  .join(" ");
                 return (
-                  <button
+                  <div
                     key={k}
-                    type="button"
-                    className={[
-                      "ghost-button text-xs py-1",
-                      bothTint
-                        ? chipActive
-                          ? "!border-cyan-400/55 !text-cyan-100 bg-teal-950/45 shadow-[0_0_14px_rgba(34,211,238,0.12)]"
-                          : "!border-cyan-500/30 !text-cyan-200/90 bg-teal-950/25 hover:!border-cyan-400/45 hover:bg-teal-950/40"
-                        : ""
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => {
-                      setActiveSchemeKey(k);
-                      setPeerAnchorKey(k);
-                      setCandidateKey(k);
-                      setCompareSurfaced(0);
-                    }}
+                    className={chipBase}
                     style={
                       bothTint
                         ? undefined
@@ -657,20 +733,30 @@ export function ControlsBar(props: {
                             color: chipActive ? "#86efac" : undefined
                           }
                     }
-                    title="Chart emphasis"
                   >
-                    <span className="mr-2">{f?.schemeName ?? k}</span>
-                    <span
-                      className="text-slate-500 font-bold"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedSchemeKeys((prev) => prev.filter((x) => x !== k));
+                    <button
+                      type="button"
+                      className="mr-1 text-left focus:outline-none"
+                      onClick={() => {
+                        setActiveSchemeKey(k);
+                        setPeerAnchorKey(k);
+                        setCandidateKey(k);
+                        setCompareSurfaced(0);
                       }}
+                      title="Set as active fund"
+                    >
+                      {f?.schemeName ?? k}
+                    </button>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded px-0.5 text-slate-500 font-bold hover:text-rose-400 focus:outline-none focus-visible:ring-1 focus-visible:ring-rose-400"
+                      onClick={() => setSelectedSchemeKeys((prev) => prev.filter((x) => x !== k))}
+                      title={`Remove ${f?.schemeName ?? k}`}
+                      aria-label={`Remove ${f?.schemeName ?? k}`}
                     >
                       ×
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 );
               })}
             </div>

@@ -15,9 +15,10 @@ import { ComparisonMetricRibbon } from "./components/ComparisonMetricRibbon";
 import { LeaderboardPanel } from "./components/LeaderboardPanel";
 import { AlphaHorizonChart } from "./components/AlphaHorizonChart";
 import { clearAllDebugSession } from "./debugSession";
-import { MAX_SELECTABLE_FUNDS } from "./config/uiLimits";
+import { MAX_SELECTABLE_FUNDS, MAX_SELECTABLE_FUNDS_BOTH_MODE } from "./config/uiLimits";
 import { compareByScoreReturnAlphaWithRankable } from "./data/peerSuggestions";
 import CreditForecastTab from "./components/CreditForecastTab";
+import { getSubCategoriesForParent } from "./utils/parentCategories";
 
 const emptyBucket: IBucketData = {
   name: "",
@@ -56,6 +57,7 @@ export default function App() {
    * Category filter: scopes the pick-list (when set), leaderboard, category summary bar, and
    * "Select all in category". Changing category does not remove already-selected funds (see ControlsBar validSchemeKeys).
    */
+  const [selectedParentCategory, setSelectedParentCategory] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedSchemeKeys, setSelectedSchemeKeys] = useState<string[]>([]);
   const [activeSchemeKey, setActiveSchemeKey] = useState<string>("");
@@ -85,37 +87,71 @@ export default function App() {
   const comparisonTableRef = useRef<ComparisonTableHandle | null>(null);
 
   const allCategories = useMemo(() => {
-    const bucket = activeBucket;
     const cats = new Set<string>();
-    for (const fund of bucket.fundsByKey.values()) {
-      if (fund.category) cats.add(fund.category);
+    // In "both" mode union categories from both buckets so prev-only categories are visible.
+    const buckets = uiMode === "both" ? [prevBucket, latestBucket] : [activeBucket];
+    for (const bucket of buckets) {
+      for (const fund of bucket.fundsByKey.values()) {
+        if (fund.category) cats.add(fund.category.trim());
+      }
     }
     return Array.from(cats).sort((a, b) => a.localeCompare(b));
-  }, [activeBucket]);
+  }, [activeBucket, uiMode, prevBucket, latestBucket]);
 
-  /** All funds in the active bucket (sorted by name) — used for chip labels and bucket-wide valid keys. */
+  /**
+   * All funds visible to the picker — in "both" mode this is the union of prev + latest
+   * so funds that exist only in the previous month are still selectable.
+   */
   const allFundsInActiveBucket = useMemo(() => {
-    const rows: IJoinedFund[] = [];
-    for (const fund of activeBucket.fundsByKey.values()) {
-      rows.push(fund);
+    if (uiMode !== "both") {
+      const rows: IJoinedFund[] = [];
+      for (const fund of activeBucket.fundsByKey.values()) rows.push(fund);
+      return rows.sort((a, b) => a.schemeName.localeCompare(b.schemeName));
     }
-    return rows.sort((a, b) => a.schemeName.localeCompare(b.schemeName));
-  }, [activeBucket]);
+    // Union: prefer latest entry when a key exists in both (latest has fresher data).
+    const byKey = new Map<string, IJoinedFund>();
+    for (const fund of prevBucket.fundsByKey.values()) byKey.set(fund.schemeKey, fund);
+    for (const fund of latestBucket.fundsByKey.values()) byKey.set(fund.schemeKey, fund);
+    return Array.from(byKey.values()).sort((a, b) => a.schemeName.localeCompare(b.schemeName));
+  }, [activeBucket, uiMode, prevBucket, latestBucket]);
 
-  /** Prune selection only when a scheme disappears from the bucket (reprocess), not when category filter changes. */
-  const validSchemeKeysInActiveBucket = useMemo(
-    () => new Set<string>(activeBucket.fundsByKey.keys()),
-    [activeBucket]
-  );
+  /**
+   * Valid scheme keys = union of both buckets — a fund present only in Previous
+   * should not be pruned from selection when in "both" mode.
+   */
+  const validSchemeKeysInActiveBucket = useMemo(() => {
+    if (uiMode !== "both") return new Set<string>(activeBucket.fundsByKey.keys());
+    const keys = new Set<string>();
+    for (const k of prevBucket.fundsByKey.keys()) keys.add(k);
+    for (const k of latestBucket.fundsByKey.keys()) keys.add(k);
+    return keys;
+  }, [activeBucket, uiMode, prevBucket, latestBucket]);
+
+  /**
+   * Active subcategory filter: when a parent is set but no explicit subcategory, use ALL
+   * subcategories under that parent as the filter set; otherwise use the single selectedCategory.
+   */
+  const effectiveSubCategories = useMemo((): string[] | null => {
+    if (selectedCategory) return [selectedCategory];
+    if (selectedParentCategory) {
+      const subs = getSubCategoriesForParent(selectedParentCategory);
+      if (subs) return subs;
+      // Standalone acting as parent: the label itself IS the subcategory.
+      return [selectedParentCategory];
+    }
+    return null; // no filter — show all
+  }, [selectedParentCategory, selectedCategory]);
 
   /**
    * Category-filtered list for empty-state copy (e.g. no funds in category). Scheme search uses the full bucket via
    * `universeFundsForChips` in ControlsBar.
    */
   const fundsForPicker = useMemo(() => {
-    if (!selectedCategory) return allFundsInActiveBucket;
-    return allFundsInActiveBucket.filter((f) => f.category === selectedCategory);
-  }, [allFundsInActiveBucket, selectedCategory]);
+    if (!effectiveSubCategories) return allFundsInActiveBucket;
+    return allFundsInActiveBucket.filter((f) =>
+      effectiveSubCategories.includes(f.category?.trim() ?? "")
+    );
+  }, [allFundsInActiveBucket, effectiveSubCategories]);
 
   /**
    * Scope for "Select all in category" only: when a category is chosen, select every fund in that category
@@ -123,11 +159,13 @@ export default function App() {
    * cross-category picks — user can add more from the full list afterward.
    */
   const fundsForSelectAllScope = useMemo(() => {
-    if (!selectedCategory) return allFundsInActiveBucket;
-    return allFundsInActiveBucket.filter((f) => f.category === selectedCategory);
-  }, [allFundsInActiveBucket, selectedCategory]);
+    if (!effectiveSubCategories) return allFundsInActiveBucket;
+    return allFundsInActiveBucket.filter((f) =>
+      effectiveSubCategories.includes(f.category?.trim() ?? "")
+    );
+  }, [allFundsInActiveBucket, effectiveSubCategories]);
 
-  const canCompute = isProcessed && (prevBucket.fundsByKey.size > 0 || latestBucket.fundsByKey.size > 0);
+  const canCompute = isProcessed && prevBucket.fundsByKey.size > 0 && latestBucket.fundsByKey.size > 0;
 
   const showTableBlock = selectedSchemeKeys.length > 0;
 
@@ -147,7 +185,7 @@ export default function App() {
       for (const k of selectedSchemeKeys) {
         const fund = sideBucket.fundsByKey.get(k);
         if (!fund) continue;
-        const cat = fund.category ?? selectedCategory ?? "";
+        const cat = fund.category?.trim() ?? "";
         if (!cat) continue;
         const snap = rankMap.get(k);
         if (!snap) continue;
@@ -164,7 +202,7 @@ export default function App() {
     for (const k of selectedSchemeKeys) {
       const fund = sideBucket.fundsByKey.get(k);
       if (!fund) continue;
-      const cat = fund.category ?? selectedCategory ?? "";
+      const cat = fund.category?.trim() ?? "";
       if (!cat) continue;
       const details = metricsEngine.computeScoreDetails({
         bucketSide: sideBucket,
@@ -182,7 +220,7 @@ export default function App() {
     const order = new Set(scored.map((s) => s.k));
     const tail = selectedSchemeKeys.filter((k) => !order.has(k));
     return scored.map((s) => s.k).concat(tail);
-  }, [rankMode, selectedSchemeKeys, uiMode, prevBucket, latestBucket, selectedCategory, timeframe, metricsEngine, dualRankings]);
+  }, [rankMode, selectedSchemeKeys, uiMode, prevBucket, latestBucket, timeframe, metricsEngine, dualRankings]);
 
   const onRibbonToggle = useCallback((schemeKey: string) => {
     setRibbonHiddenKeys((prev) => {
@@ -193,11 +231,13 @@ export default function App() {
     });
   }, []);
 
+  const effectiveMaxSelected = uiMode === "both" ? MAX_SELECTABLE_FUNDS_BOTH_MODE : MAX_SELECTABLE_FUNDS;
+
   const handleSelectAllSchemes = useCallback(() => {
-    const keys = fundsForSelectAllScope.map((f) => f.schemeKey).slice(0, MAX_SELECTABLE_FUNDS);
+    const keys = fundsForSelectAllScope.map((f) => f.schemeKey).slice(0, effectiveMaxSelected);
     setSelectedSchemeKeys(keys);
     setActiveSchemeKey(keys[0] ?? "");
-  }, [fundsForSelectAllScope]);
+  }, [fundsForSelectAllScope, effectiveMaxSelected]);
 
   const handleRibbonActivate = useCallback((schemeKey: string) => {
     setActiveSchemeKey(schemeKey);
@@ -272,7 +312,11 @@ export default function App() {
       const msg = e instanceof Error ? e.message : String(e);
       setProcessFailure(formatProcessFailure(e));
       onLog(`Error: ${msg}`);
-      setIsProcessed(false);
+      // Keep isProcessed true if we already have a valid prior run so the
+      // dashboard stays visible. Only go to waiting-state on the very first run.
+      if (prevBucket.fundsByKey.size === 0 && latestBucket.fundsByKey.size === 0) {
+        setIsProcessed(false);
+      }
     } finally {
       processLockRef.current = false;
       setProcessing(false);
@@ -481,6 +525,11 @@ export default function App() {
                       uiMode={uiMode}
                       onUiModeChange={setUiMode}
                       categories={allCategories}
+                      selectedParentCategory={selectedParentCategory}
+                      onParentCategoryChange={(p) => {
+                        setSelectedParentCategory(p);
+                        setSelectedCategory(""); // clear sub-category when parent changes
+                      }}
                       selectedCategory={selectedCategory}
                       onCategoryChange={setSelectedCategory}
                       funds={fundsForPicker}
@@ -495,7 +544,7 @@ export default function App() {
                       rankMode={rankMode}
                       onRankModeChange={setRankMode}
                       onOpenLeaderboard={() => setLeaderboardOpen(true)}
-                      maxSelected={MAX_SELECTABLE_FUNDS}
+                      maxSelected={effectiveMaxSelected}
                       canCompute={canCompute}
                       timeframeYears={timeframe}
                       bucketSide={activeBucket}
@@ -515,7 +564,6 @@ export default function App() {
                             selectedSchemeKeys={selectedSchemeKeys}
                             timeframeYears={timeframe}
                             uiMode={uiMode}
-                            activeBucket={activeBucket}
                             prevBucket={prevBucket}
                             latestBucket={latestBucket}
                             prevPerfFiles={prevPerfFiles}
@@ -559,7 +607,7 @@ export default function App() {
                               onSelectAll={handleSelectAllSchemes}
                               selectAllDisabled={!canCompute || !fundsForSelectAllScope.length}
                               selectAllButtonLabel={
-                                selectedCategory ? "Select all in this category" : "Select all funds (up to cap)"
+                                selectedCategory ? "Select all in this sub-category" : selectedParentCategory ? "Select all in this sector" : "Select all funds (up to cap)"
                               }
                             />
                           </div>
@@ -609,6 +657,7 @@ export default function App() {
               bucketPrevious={prevBucket}
               bucketLatest={latestBucket}
               selectedCategory={selectedCategory}
+              effectiveSubCategories={effectiveSubCategories}
               timeframeYears={timeframe}
               engine={metricsEngine}
             />

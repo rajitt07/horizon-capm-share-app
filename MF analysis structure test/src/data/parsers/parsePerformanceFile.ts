@@ -284,7 +284,7 @@ function aoaToNamedRows(
       obj[headers[c]] = raw[c] === null || raw[c] === undefined ? "" : String(raw[c]);
     }
 
-    if (!schemeCol) break;
+    if (!schemeCol) continue;
     const schemeVal = safeTrim(obj[schemeCol] ?? "");
     if (!schemeVal) continue;
 
@@ -295,7 +295,7 @@ function aoaToNamedRows(
 
     if (isNonFundSchemeNoise(schemeVal)) continue;
 
-    if (isFooterRow(obj as Record<string, string>, schemeCol)) break;
+    if (isFooterRow(obj as Record<string, string>, schemeCol)) continue;
 
     const catCol = pickHeader(obj, ["category", "Category"]);
     const category =
@@ -389,6 +389,13 @@ function parseRowsIntoFunds(
       findHeaderKey(headers, USER_FIXED_PERFORMANCE_HEADERS.RETURN_SINCE_LAUNCH_DIRECT_BENCHMARK);
     const returnSinceLaunchDirectBenchmarkPct = extractNumericOrNull(row, returnSinceLaunchHeader);
 
+    if (out.has(keyInfo.schemeKey)) {
+      console.warn(
+        `[parsePerformanceFile] Duplicate scheme key "${keyInfo.schemeKey}" (${keyInfo.schemeName}) — ` +
+        `keeping first occurrence, skipping duplicate row.`
+      );
+      continue;
+    }
     out.set(keyInfo.schemeKey, {
       schemeKey: keyInfo.schemeKey,
       schemeName: keyInfo.schemeName,

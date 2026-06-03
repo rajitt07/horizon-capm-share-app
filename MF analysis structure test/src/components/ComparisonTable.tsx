@@ -74,16 +74,15 @@ function getAumChangeDisplay(
   bucketPrevious: IBucketData,
   bucketLatest: IBucketData,
   schemeKey: string
-): { delta: number | null; pct: number | null } {
+): { delta: number | null; pct: number | null; unmatched: boolean } {
   const cross = resolveCrossBucketAum(bucketPrevious, bucketLatest, schemeKey);
-  let delta: number | null = null;
-  if (cross.aumLatest !== null && Number.isFinite(cross.aumLatest)) {
-    if (cross.isNewFund) delta = cross.aumLatest;
-    else if (cross.aumDiff !== null && Number.isFinite(cross.aumDiff)) delta = cross.aumDiff;
+  if (cross.match === "unmatched" || cross.match === "none") {
+    return { delta: null, pct: null, unmatched: true };
   }
+  let delta: number | null = null;
+  if (cross.aumDiff !== null && Number.isFinite(cross.aumDiff)) delta = cross.aumDiff;
   let pct: number | null = null;
   if (
-    !cross.isNewFund &&
     cross.aumPrev !== null &&
     Number.isFinite(cross.aumPrev) &&
     cross.aumPrev > 0 &&
@@ -92,7 +91,7 @@ function getAumChangeDisplay(
   ) {
     pct = (cross.aumDiff / cross.aumPrev) * 100;
   }
-  return { delta, pct };
+  return { delta, pct, unmatched: false };
 }
 
 function formatSignedCr(v: number | null | undefined): string {
@@ -259,7 +258,7 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
       for (const k of selectedSchemeKeys) {
         const fund = sideBucket.fundsByKey.get(k);
         if (!fund) continue;
-        const cat = fund.category ?? selectedCategory ?? "";
+        const cat = fund.category?.trim() ?? "";
         if (!cat) continue;
         const snap = rankMap.get(k);
         if (!snap) continue;
@@ -269,7 +268,7 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
       for (const k of selectedSchemeKeys) {
         const fund = sideBucket.fundsByKey.get(k);
         if (!fund) continue;
-        const cat = fund.category ?? selectedCategory ?? "";
+        const cat = fund.category?.trim() ?? "";
         if (!cat) continue;
         const details = engine.computeScoreDetails({
           bucketSide: sideBucket,
@@ -294,7 +293,6 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
     uiMode,
     bucketPrevious,
     bucketLatest,
-    selectedCategory,
     timeframeYears,
     engine,
     rankingsPrev,
@@ -332,7 +330,7 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
     return displaySchemeKeys.map((schemeKey) => {
       const fund = side === "previous" ? bucketPrevious.fundsByKey.get(schemeKey) : bucketLatest.fundsByKey.get(schemeKey);
       const fundName = fund?.schemeName ?? schemeKey;
-      return { id: schemeKey, schemeKey, mode: side, fundName, header: fundName };
+      return { id: schemeKey, schemeKey, mode: side, fundName, periodShort: undefined, header: fundName };
     });
   }, [uiMode, displaySchemeKeys, bucketPrevious.fundsByKey, bucketLatest.fundsByKey]);
 
@@ -382,46 +380,25 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
     if (!fund) return null;
     const cat = fund.category ?? selectedCategory ?? "";
     if (uiMode === "both") {
+      const snapPrev = getSnapshotOrCompute(engine, rankingsPrev, timeframeYears, schemeKey, bucketPrevious, bucketPrevious, bucketLatest, cat);
+      const snapLatest = getSnapshotOrCompute(engine, rankingsLatest, timeframeYears, schemeKey, bucketLatest, bucketPrevious, bucketLatest, cat);
       return {
         dual: true as const,
         fundName: fund.schemeName,
-        conditionsPrev: getSnapshotOrCompute(
-          engine,
-          rankingsPrev,
-          timeframeYears,
-          schemeKey,
-          bucketPrevious,
-          bucketPrevious,
-          bucketLatest,
-          cat
-        ).conditions,
-        conditionsLatest: getSnapshotOrCompute(
-          engine,
-          rankingsLatest,
-          timeframeYears,
-          schemeKey,
-          bucketLatest,
-          bucketPrevious,
-          bucketLatest,
-          cat
-        ).conditions
+        conditionsPrev: snapPrev.conditions,
+        conditionsLatest: snapLatest.conditions,
+        missingInputsPrev: snapPrev.missingInputs,
+        missingInputsLatest: snapLatest.missingInputs
       };
     }
     const sideBucket = uiMode === "previous" ? bucketPrevious : bucketLatest;
     const rankings = uiMode === "previous" ? rankingsPrev : rankingsLatest;
+    const snap = getSnapshotOrCompute(engine, rankings, timeframeYears, schemeKey, sideBucket, bucketPrevious, bucketLatest, cat);
     return {
       dual: false as const,
       fundName: fund.schemeName,
-      conditions: getSnapshotOrCompute(
-        engine,
-        rankings,
-        timeframeYears,
-        schemeKey,
-        sideBucket,
-        bucketPrevious,
-        bucketLatest,
-        cat
-      ).conditions
+      conditions: snap.conditions,
+      missingInputs: snap.missingInputs
     };
   }, [
     whyOpen,
@@ -615,7 +592,22 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
               </td>
             );
           }
-          const { delta, pct } = getAumChangeDisplay(bucketPrevious, bucketLatest, col.schemeKey);
+          const { delta, pct, unmatched } = getAumChangeDisplay(bucketPrevious, bucketLatest, col.schemeKey);
+          if (unmatched) {
+            return (
+              <td
+                key={col.id}
+                className={[
+                  "num-cell", "comparison-aum-cell", "text-center",
+                  "text-[10px]", "sm:text-[11px]", "comparison-fund-cell"
+                ].join(" ")}
+                title="Previous month row not matched — fund may have been renamed or AUM was missing"
+              >
+                <span className="font-mono tabular-nums text-slate-500">NA</span>
+                <span className="ml-1 font-mono text-[9px] text-slate-600">(unmatched)</span>
+              </td>
+            );
+          }
           const pos = delta !== null && Number.isFinite(delta) && delta > 0;
           const neg = delta !== null && Number.isFinite(delta) && delta < 0;
           const pctPos = pct !== null && Number.isFinite(pct) && pct > 0;
@@ -767,8 +759,15 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
                   >
                     <div className="flex min-w-0 w-full flex-col items-center gap-1.5 text-center">
                       {showScoreHeader ? (
-                        <div className="inline-flex w-fit max-w-full flex-wrap items-center gap-1 rounded-md border border-amber-400/35 bg-amber-950/25 px-2 py-0.5 text-[10px] font-semibold text-amber-200/95 font-terminal tabular-nums">
-                          <span>{rankable ? `Score ${sc}/${scTotal}` : "NR"}</span>
+                        <div
+                          title={!rankable ? "Partial score — one or more metrics (return, alpha, IR) are unavailable for this fund at the selected horizon" : undefined}
+                          className={`inline-flex w-fit max-w-full flex-wrap items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold font-terminal tabular-nums ${
+                            rankable
+                              ? "border-amber-400/35 bg-amber-950/25 text-amber-200/95"
+                              : "border-slate-600/50 bg-slate-800/30 text-slate-400/90"
+                          }`}
+                        >
+                          <span>{`Score ${sc}/${scTotal}`}{!rankable ? <span className="ml-0.5 text-slate-500">*</span> : null}</span>
                           {uiMode === "both" && col.mode === "latest" && scoreDelta !== null && scoreDelta !== 0 ? (
                             <span
                               className={
@@ -879,6 +878,9 @@ export const ComparisonTable = forwardRef<ComparisonTableHandle, ComparisonTable
           conditions={whyPopoverPayload.dual ? [] : whyPopoverPayload.conditions}
           conditionsPrev={whyPopoverPayload.dual ? whyPopoverPayload.conditionsPrev : undefined}
           conditionsLatest={whyPopoverPayload.dual ? whyPopoverPayload.conditionsLatest : undefined}
+          missingInputs={whyPopoverPayload.dual ? undefined : whyPopoverPayload.missingInputs}
+          missingInputsPrev={whyPopoverPayload.dual ? whyPopoverPayload.missingInputsPrev : undefined}
+          missingInputsLatest={whyPopoverPayload.dual ? whyPopoverPayload.missingInputsLatest : undefined}
           fundName={whyPopoverPayload.fundName}
         />
       ) : null}

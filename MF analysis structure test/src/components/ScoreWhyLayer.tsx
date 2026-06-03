@@ -9,7 +9,7 @@ function trendForPair(prevPass: boolean, latestPass: boolean): "up" | "down" | n
   return null;
 }
 
-export function ScoreWhyLayer(props: {
+export interface ScoreWhyLayerProps {
   open: boolean;
   position: { top: number; left: number } | null;
   onClose: () => void;
@@ -17,8 +17,16 @@ export function ScoreWhyLayer(props: {
   fundName: string;
   conditionsPrev?: IScoreCondition[];
   conditionsLatest?: IScoreCondition[];
-}) {
-  const { open, position, onClose, conditions, fundName, conditionsPrev, conditionsLatest } = props;
+  /** Missing input names for single-mode view — causes the * on the score badge. */
+  missingInputs?: string[];
+  /** Missing inputs for the Previous bucket in both-mode. */
+  missingInputsPrev?: string[];
+  /** Missing inputs for the Latest bucket in both-mode. */
+  missingInputsLatest?: string[];
+}
+
+export function ScoreWhyLayer(props: ScoreWhyLayerProps) {
+  const { open, position, onClose, conditions, fundName, conditionsPrev, conditionsLatest, missingInputs, missingInputsPrev, missingInputsLatest } = props;
   const panelRef = useRef<HTMLDivElement>(null);
 
   const dual =
@@ -158,6 +166,51 @@ export function ScoreWhyLayer(props: {
           {!dual && conditions.length === 0 ? (
             <p className="mt-2 text-[11px] text-slate-500">No breakdown — fund data missing for scoring.</p>
           ) : null}
+
+          {/* ── Data gaps section ── */}
+          {(() => {
+            // Build the set of missing inputs to display.
+            const missing: string[] = dual
+              ? Array.from(new Set([...(missingInputsPrev ?? []), ...(missingInputsLatest ?? [])]))
+              : (missingInputs ?? []);
+            if (!missing.length) return null;
+
+            // In dual mode, annotate which bucket each gap affects.
+            const annotated: { label: string; note?: string }[] = dual
+              ? missing.map((m) => {
+                  const inPrev = (missingInputsPrev ?? []).includes(m);
+                  const inLatest = (missingInputsLatest ?? []).includes(m);
+                  const note =
+                    inPrev && inLatest ? "both buckets" : inPrev ? "prev only" : "latest only";
+                  return { label: m, note };
+                })
+              : missing.map((m) => ({ label: m }));
+
+            return (
+              <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-950/20 px-3 py-2.5">
+                <div className="mb-1.5 flex items-center gap-1.5 font-terminal text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-400/80">
+                  <span aria-hidden>⚠</span>
+                  <span>Partial score — missing data</span>
+                </div>
+                <ul className="space-y-1">
+                  {annotated.map(({ label, note }) => (
+                    <li key={label} className="flex items-start gap-2 text-[11px] leading-snug">
+                      <span className="mt-0.5 shrink-0 text-amber-500/70" aria-hidden>•</span>
+                      <span className="text-amber-200/80">
+                        {label}
+                        {note ? (
+                          <span className="ml-1.5 font-mono text-[9px] text-amber-500/60">({note})</span>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[10px] text-amber-500/50 leading-snug">
+                  These inputs are unavailable — affected scoring conditions are treated as not passed.
+                </p>
+              </div>
+            );
+          })()}
         </motion.div>
         </motion.div>
       ) : null}

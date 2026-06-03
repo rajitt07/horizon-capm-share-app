@@ -61,7 +61,13 @@ const CANON = {
   equityThematicSectorRotation: "Equity: Sector rotation",
   equityThematicFMCG: "Equity: FMCG",
   equityThematicServices: "Equity: Services",
-  equityThematicDiversified: "Equity: Diversified"
+  equityThematicDiversified: "Equity: Diversified",
+  /** Separate from Pharma & Healthcare — specifically hospital-sector funds. */
+  equityThematicHospitals: "Equity: Hospitals",
+  /** Telecom-sector equity funds. */
+  equityThematicTelecommunication: "Equity: Telecommunication",
+  /** PSU bank-specific equity funds (distinct from broad PSU). */
+  equityThematicPSUBanks: "Equity: PSU Banks"
 } as const;
 
 /** Normalize AMFI-style section banners (e.g. "EQUITY : LARGE CAP", "Debt Schemes"). */
@@ -147,6 +153,21 @@ function inferThematicEquityCategoryFromFundName(schemeName: string): string | n
   const n = schemeName.toLowerCase();
 
   if (/\bbanking\s*&\s*psu\b|\bbanking\s+and\s+psu\b/.test(n)) return null;
+
+  // PSU Banks must run before generic PSU so "PSU Bank Fund" → PSU Banks, not PSU.
+  if (
+    /\bpsu\s+bank\b/.test(n) ||
+    /\bpsu\s+banking\b/.test(n) ||
+    /\bpublic\s+sector\s+bank/.test(n) ||
+    /\bpsb\b/.test(n)
+  ) {
+    return CANON.equityThematicPSUBanks;
+  }
+
+  // Hospitals must run before Pharma & Healthcare so "Nifty India Hospitals" → Hospitals.
+  if (/\bhospitals?\b/.test(n)) {
+    return CANON.equityThematicHospitals;
+  }
 
   if (
     /\bbfsi\b/.test(n) ||
@@ -259,6 +280,15 @@ function inferThematicEquityCategoryFromFundName(schemeName: string): string | n
 
   if (/\bpsu\b/.test(n)) return CANON.equityThematicPSU;
 
+  if (
+    /\btelecom\b/.test(n) ||
+    /\btelecommunication\b/.test(n) ||
+    /\b5g\b/.test(n) ||
+    /\bwireless\b/.test(n)
+  ) {
+    return CANON.equityThematicTelecommunication;
+  }
+
   if (/\bminimum\s+variance\b|\bmomentum\b/.test(n)) return CANON.equityThematicFactorSmartBeta;
   if (/\bquant\b/.test(n)) return CANON.equityThematicQuant;
 
@@ -337,6 +367,14 @@ export function resolveCanonicalCategory(sectionOrColumn: string | null | undefi
   }
 
   if (fromHint && !isRefinableGenericCategory(fromHint)) {
+    // Explicit, concrete section header — trust it completely; do NOT let
+    // name-based thematic inference override a known category like "Large Cap".
+    return fromHint;
+  }
+
+  if (fromHint && isRefinableGenericCategory(fromHint)) {
+    // Generic section header (e.g. "Equity", "Thematic") — allow thematic
+    // inference to refine it to a specific sub-category.
     const thematic = inferThematicEquityCategoryFromFundName(schemeName);
     if (thematic) return thematic;
     return fromHint;

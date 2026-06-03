@@ -1,4 +1,5 @@
 import type { IBucketData, IJoinedFund, IPerformance, ITer, ISchemeKey, ITimeframeYears } from "./types";
+import { generateUniversalKey } from "./utils";
 
 const horizons: ITimeframeYears[] = ["1", "3", "5", "10"];
 
@@ -17,7 +18,11 @@ export function joinPerformanceAndTer(
   const joinedFunds = new Map<ISchemeKey, IJoinedFund>();
 
   for (const [schemeKey, perf] of performanceByKey.entries()) {
-    const ter = terByKey.get(schemeKey);
+    // Primary lookup: by exact scheme key (code-based or name-based depending on parser).
+    // Fallback: by name-key — covers the case where TER uses fixed-template (name keys)
+    // but performance was keyed by scheme code.
+    const nameKey = generateUniversalKey(perf.schemeName);
+    const ter = terByKey.get(schemeKey) ?? (schemeKey !== nameKey ? terByKey.get(nameKey) : undefined);
     const perfSourceFileLabel = perfSourceBySchemeKey?.get(schemeKey) ?? null;
     const returnsDirectByHorizon: Record<ITimeframeYears, number | null> = { "1": null, "3": null, "5": null, "10": null };
     const returnsBenchmarkByHorizon: Record<ITimeframeYears, number | null> = { "1": null, "3": null, "5": null, "10": null };

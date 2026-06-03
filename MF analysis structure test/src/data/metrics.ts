@@ -22,7 +22,7 @@ export function createMetricsEngine() {
 
     const peers: IJoinedFund[] = [];
     for (const fund of bucket.fundsByKey.values()) {
-      if (fund.category === category) peers.push(fund);
+      if (fund.category?.trim() === category.trim()) peers.push(fund);
     }
 
     if (peers.length <= 1) {
@@ -88,7 +88,8 @@ export function createMetricsEngine() {
         total: 5,
         reasons: ["missing_fund: 0/5"],
         conditions: [] as IScoreCondition[],
-        rankable: false
+        rankable: false,
+        missingInputs: ["Fund not found in bucket"]
       };
     }
 
@@ -98,19 +99,21 @@ export function createMetricsEngine() {
     const alpha = fundSide.alphaByHorizon[horizonYears] ?? null;
 
     const aumCross = resolveCrossBucketAum(bucketPrevious, bucketLatest, schemeKey);
+    // isNewFund no longer carries full AUM (Option A: fuzzy removed). aumDiff is null for
+    // unmatched/new funds so aumGrowthDelta will be null → AUM condition unavailable.
     const aumGrowthDelta =
       aumCross.aumLatest !== null && Number.isFinite(aumCross.aumLatest)
-        ? aumCross.isNewFund
-          ? aumCross.aumLatest
-          : aumCross.aumDiff !== null && Number.isFinite(aumCross.aumDiff)
-            ? aumCross.aumDiff
-            : null
+        ? aumCross.aumDiff !== null && Number.isFinite(aumCross.aumDiff)
+          ? aumCross.aumDiff
+          : null
         : null;
     const aumCaption =
-      aumCross.isNewFund && aumCross.aumLatest !== null
-        ? "New listing in latest snapshot — flow equals full current AUM (no prior row matched)"
+      aumCross.match === "unmatched"
+        ? aumCross.isNewFund
+          ? "New listing — no previous month row found; AUM change unavailable"
+          : "Fund may have been renamed or AUM was missing last month — AUM change unavailable"
         : bucketSide === bucketPrevious
-          ? "Positive flow (latest vs prior reporting snapshot — fallback when intra-period AUM history is unavailable)"
+          ? "Positive flow (latest vs prior reporting snapshot)"
           : "Positive flow (latest > previous)";
 
     const irDirect = fundSide.infoRatioDirectByHorizon[horizonYears] ?? null;
@@ -125,6 +128,15 @@ export function createMetricsEngine() {
       fin(catStats.avgTER) &&
       fin(alpha) &&
       fin(irDirect);
+
+    const missingInputs: string[] = [];
+    if (!fin(ret)) missingInputs.push("Fund return at selected horizon");
+    if (!fin(catStats.avgReturnDirect)) missingInputs.push("Category peer average return");
+    if (aumGrowthDelta === null) missingInputs.push("AUM change vs prior month");
+    if (!fin(ter)) missingInputs.push("TER — direct plan");
+    if (!fin(catStats.avgTER)) missingInputs.push("Category peer average TER");
+    if (!fin(alpha)) missingInputs.push("Alpha at selected horizon");
+    if (!fin(irDirect)) missingInputs.push("Information Ratio — direct plan");
 
     // 1 Return>cat · 2 AUMΔ>0 · 3 TER<cat · 4 Alpha>0 · 5 IR (Direct)>1
     const c1 = ret !== null && catStats.avgReturnDirect !== null && ret > catStats.avgReturnDirect;
@@ -166,7 +178,8 @@ export function createMetricsEngine() {
       total: 5,
       reasons,
       conditions,
-      rankable
+      rankable,
+      missingInputs
     };
   }
 
@@ -179,7 +192,7 @@ export function createMetricsEngine() {
     bucketLatest: IBucketData;
   }): IFundRankingSnapshot {
     const d = computeScoreDetails(params);
-    return { score: d.score, total: d.total, conditions: d.conditions, rankable: d.rankable };
+    return { score: d.score, total: d.total, conditions: d.conditions, rankable: d.rankable, missingInputs: d.missingInputs };
   }
 
   return {

@@ -82,6 +82,8 @@ export interface IFundRankingSnapshot {
   conditions: IScoreCondition[];
   /** False when any input needed for the five score checks is missing (NA) — fund is excluded from category rank / score ordering. */
   rankable: boolean;
+  /** Human-readable names of the specific inputs that are null/NA, causing rankable=false. Empty when rankable=true. */
+  missingInputs: string[];
 }
 
 export interface IBucketStatus {

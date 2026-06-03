@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { IBucketData, ITimeframeYears, IUiMode } from "../data/types";
 import type { MetricsEngine } from "../data/metrics";
 import { computeBenchmarkRangeForCategory } from "../data/benchmarkRangeFromPerfFiles";
@@ -70,7 +70,6 @@ export function CategorySummaryBar(props: {
   selectedSchemeKeys: string[];
   timeframeYears: ITimeframeYears;
   uiMode: IUiMode;
-  activeBucket: IBucketData;
   prevBucket: IBucketData;
   latestBucket: IBucketData;
   prevPerfFiles: File[];
@@ -82,7 +81,6 @@ export function CategorySummaryBar(props: {
     selectedSchemeKeys,
     timeframeYears,
     uiMode,
-    activeBucket,
     prevBucket,
     latestBucket,
     prevPerfFiles,
@@ -94,33 +92,30 @@ export function CategorySummaryBar(props: {
   const categoriesFromSelection = useMemo(() => {
     const seen = new Set<string>();
     for (const k of selectedSchemeKeys) {
-      const c = activeBucket.fundsByKey.get(k)?.category?.trim();
+      // Check both buckets so prev-only funds in both-mode contribute their category.
+      const c =
+        latestBucket.fundsByKey.get(k)?.category?.trim() ??
+        prevBucket.fundsByKey.get(k)?.category?.trim();
       if (c) seen.add(c);
     }
     return Array.from(seen).sort((a, b) => a.localeCompare(b));
-  }, [selectedSchemeKeys, activeBucket]);
+  }, [selectedSchemeKeys, prevBucket, latestBucket]);
 
   const showDropdownContextNote = useMemo(() => {
     if (!selectedCategory || !selectedSchemeKeys.length) return false;
     return selectedSchemeKeys.some((k) => {
-      const c = activeBucket.fundsByKey.get(k)?.category?.trim();
+      // Check both buckets — a fund may only exist in one of them.
+      const c =
+        latestBucket.fundsByKey.get(k)?.category?.trim() ??
+        prevBucket.fundsByKey.get(k)?.category?.trim();
       return Boolean(c && c !== selectedCategory);
     });
-  }, [selectedCategory, selectedSchemeKeys, activeBucket]);
-
-  /** Per canonical category: fund count in active bucket (for gating displayed averages only). */
-  const fundCountByCategoryInActiveBucket = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const f of activeBucket.fundsByKey.values()) {
-      const c = f.category?.trim();
-      if (!c) continue;
-      m.set(c, (m.get(c) ?? 0) + 1);
-    }
-    return m;
-  }, [activeBucket]);
+  }, [selectedCategory, selectedSchemeKeys, prevBucket, latestBucket]);
 
   const [benchByCategory, setBenchByCategory] = useState<Record<string, BenchPair>>({});
   const [benchLoading, setBenchLoading] = useState(false);
+  /** Cache keyed by `"${fileNames}|${cat}|${horizon}|${mode}"` to avoid re-parsing unchanged files. */
+  const benchCacheRef = useRef<Map<string, ReturnType<typeof computeBenchmarkRangeForCategory>>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +128,9 @@ export function CategorySummaryBar(props: {
     setBenchLoading(true);
     (async () => {
       try {
+        const cacheKey = (files: File[], cat: string, mode: string) =>
+          `${files.map((f) => `${f.name}:${f.size}:${f.lastModified}`).join(",")}|${cat}|${timeframeYears}|${mode}`;
+
         const restrictFor = (bucket: IBucketData, cat: string) => {
           const s = new Set<string>();
           for (const k of selectedSchemeKeys) {
@@ -143,30 +141,36 @@ export function CategorySummaryBar(props: {
           }
           return s.size > 0 ? s : undefined;
         };
+
+        const cachedOrFetch = async (
+          files: File[],
+          cat: string,
+          mode: string,
+          bucket: IBucketData
+        ) => {
+          const key = cacheKey(files, cat, mode);
+          if (benchCacheRef.current.has(key)) {
+            return benchCacheRef.current.get(key)!;
+          }
+          const result = computeBenchmarkRangeForCategory(files, cat, timeframeYears, restrictFor(bucket, cat));
+          benchCacheRef.current.set(key, result);
+          return result;
+        };
+
         const entries = await Promise.all(
           cats.map(async (cat): Promise<[string, BenchPair]> => {
             if (uiMode === "both") {
               const [p, l] = await Promise.all([
-                computeBenchmarkRangeForCategory(prevPerfFiles, cat, timeframeYears, restrictFor(prevBucket, cat)),
-                computeBenchmarkRangeForCategory(latestPerfFiles, cat, timeframeYears, restrictFor(latestBucket, cat))
+                cachedOrFetch(prevPerfFiles, cat, "prev", prevBucket),
+                cachedOrFetch(latestPerfFiles, cat, "latest", latestBucket)
               ]);
               return [cat, { prev: p, latest: l }];
             }
             if (uiMode === "previous") {
-              const p = await computeBenchmarkRangeForCategory(
-                prevPerfFiles,
-                cat,
-                timeframeYears,
-                restrictFor(prevBucket, cat)
-              );
+              const p = await cachedOrFetch(prevPerfFiles, cat, "prev", prevBucket);
               return [cat, { prev: p, latest: null }];
             }
-            const l = await computeBenchmarkRangeForCategory(
-              latestPerfFiles,
-              cat,
-              timeframeYears,
-              restrictFor(latestBucket, cat)
-            );
+            const l = await cachedOrFetch(latestPerfFiles, cat, "latest", latestBucket);
             return [cat, { prev: null, latest: l }];
           })
         );
@@ -232,8 +236,24 @@ export function CategorySummaryBar(props: {
 
       <div className="flex flex-col gap-3">
         {categoriesFromSelection.map((cat) => {
-          const stats = engine.getCategoryStats(activeBucket, cat, timeframeYears);
-          const catCount = fundCountByCategoryInActiveBucket.get(cat) ?? 0;
+          // Use the bucket that matches the current view: prev for Previous Month,
+          // latest for Latest Data, and separate stats per side for Prev vs Latest.
+          const statsPrev = uiMode !== "latest"
+            ? engine.getCategoryStats(prevBucket, cat, timeframeYears)
+            : null;
+          const statsLatest = uiMode !== "previous"
+            ? engine.getCategoryStats(latestBucket, cat, timeframeYears)
+            : null;
+          // For single-bucket views use the relevant side; for both, prefer latest for the
+          // shared peer-average row (prev stats are surfaced in the benchmark section).
+          const stats = uiMode === "previous" ? statsPrev! : statsLatest!;
+          const catCountPrev = uiMode !== "latest"
+            ? (() => { let n = 0; for (const f of prevBucket.fundsByKey.values()) { if (f.category?.trim() === cat) n++; } return n; })()
+            : 0;
+          const catCountLatest = uiMode !== "previous"
+            ? (() => { let n = 0; for (const f of latestBucket.fundsByKey.values()) { if (f.category?.trim() === cat) n++; } return n; })()
+            : 0;
+          const catCount = uiMode === "previous" ? catCountPrev : catCountLatest;
           const showCategoryAverages = catCount >= MIN_FUNDS_FOR_CATEGORY_AVG_DISPLAY;
           const avgRet = showCategoryAverages ? (stats.avgReturnDirect ?? null) : null;
           const avgTer = showCategoryAverages ? (stats.avgTER ?? null) : null;

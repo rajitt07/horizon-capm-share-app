@@ -7,7 +7,7 @@ export default function BucketUploader(props: {
   bucketName: string;
   embedded?: boolean;
   perfFiles: File[];
-  onPerfFilesChange: (files: File[]) => void;
+  onPerfFilesChange: React.Dispatch<React.SetStateAction<File[]>>;
   terFile: File | null;
   onTerFileChange: (f: File | null) => void;
 }) {
@@ -68,7 +68,7 @@ function UploadIcon({ className }: { className?: string }) {
   );
 }
 
-function PerformanceDrop(props: { files: File[]; onFiles: (files: File[]) => void; dataOk: boolean }) {
+function PerformanceDrop(props: { files: File[]; onFiles: React.Dispatch<React.SetStateAction<File[]>>; dataOk: boolean }) {
   const { files, onFiles, dataOk } = props;
   const [dragOver, setDragOver] = React.useState(false);
 
@@ -81,7 +81,14 @@ function PerformanceDrop(props: { files: File[]; onFiles: (files: File[]) => voi
 
   function handleFiles(list: FileList | null) {
     const picked = pickPerfFilesFromList(list);
-    onFiles(picked);
+    if (!picked.length) return;
+    // Merge with existing list — deduplicate by name+size so re-dropping the same
+    // file doesn't add a duplicate, but adding a genuinely new file appends it.
+    onFiles((prev) => {
+      const existing = new Set(prev.map((f) => `${f.name}:${f.size}`));
+      const fresh = picked.filter((f) => !existing.has(`${f.name}:${f.size}`));
+      return [...prev, ...fresh];
+    });
   }
 
   const folderInputProps = { webkitdirectory: "", directory: "" } as React.InputHTMLAttributes<HTMLInputElement>;
@@ -116,7 +123,7 @@ function PerformanceDrop(props: { files: File[]; onFiles: (files: File[]) => voi
           <DataStatusLight ok={dataOk} label={dataOk ? "Files added" : "No files"} />
         </div>
         <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-          CSV / XLSX — returns + benchmark. Folder or multi-file merges; duplicate schemes use last file.
+          CSV / XLSX — returns + benchmark. Add files one batch at a time; duplicates (same name + size) are skipped automatically.
         </div>
         <div className="text-[11px] text-slate-400 mt-1.5 truncate" title={summary}>
           {summary}

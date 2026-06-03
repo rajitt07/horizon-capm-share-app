@@ -11,18 +11,26 @@ export function LeaderboardPanel(props: {
   bucketPrevious: IBucketData;
   bucketLatest: IBucketData;
   selectedCategory: string;
+  /** When a parent category is active, this is the list of subcategories under it. null = no filter. */
+  effectiveSubCategories: string[] | null;
   timeframeYears: ITimeframeYears;
   engine: MetricsEngine;
 }) {
-  const { open, onClose, bucketSide, bucketPrevious, bucketLatest, selectedCategory, timeframeYears, engine } = props;
+  const { open, onClose, bucketSide, bucketPrevious, bucketLatest, selectedCategory, effectiveSubCategories, timeframeYears, engine } = props;
 
   const ranked = useMemo(() => {
     const map = bucketSide.rankingsByHorizon?.[timeframeYears];
     const rows: Array<{ fund: IJoinedFund; score: number; rankable: boolean }> = [];
+    const filterCat = selectedCategory.trim();
     if (map && map.size > 0) {
       for (const fund of bucketSide.fundsByKey.values()) {
-        if (selectedCategory && fund.category !== selectedCategory) continue;
-        const cat = fund.category ?? "";
+        // Apply subcategory filter (single sub-category or parent's sub-category set).
+        if (filterCat) {
+          if (fund.category?.trim() !== filterCat) continue;
+        } else if (effectiveSubCategories) {
+          if (!effectiveSubCategories.includes(fund.category?.trim() ?? "")) continue;
+        }
+        const cat = fund.category?.trim() ?? "";
         if (!cat) continue;
         const snap = map.get(fund.schemeKey);
         if (!snap) continue;
@@ -30,8 +38,12 @@ export function LeaderboardPanel(props: {
       }
     } else {
       for (const fund of bucketSide.fundsByKey.values()) {
-        if (selectedCategory && fund.category !== selectedCategory) continue;
-        const cat = fund.category ?? "";
+        if (filterCat) {
+          if (fund.category?.trim() !== filterCat) continue;
+        } else if (effectiveSubCategories) {
+          if (!effectiveSubCategories.includes(fund.category?.trim() ?? "")) continue;
+        }
+        const cat = fund.category?.trim() ?? "";
         if (!cat) continue;
         const details = engine.computeScoreDetails({
           bucketSide,
@@ -48,7 +60,7 @@ export function LeaderboardPanel(props: {
       compareByScoreReturnAlphaWithRankable(a.score, a.fund, a.rankable, b.score, b.fund, b.rankable, timeframeYears)
     );
     return rows;
-  }, [bucketSide, bucketPrevious, bucketLatest, selectedCategory, timeframeYears, engine]);
+  }, [bucketSide, bucketPrevious, bucketLatest, selectedCategory, effectiveSubCategories, timeframeYears, engine]);
 
   const catRankByKey = useMemo(() => {
     const m = new Map<string, { rank: number; total: number }>();

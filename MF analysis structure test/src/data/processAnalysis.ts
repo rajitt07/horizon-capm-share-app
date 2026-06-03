@@ -97,6 +97,12 @@ async function parseAndJoinBucket(
     perfResult.perfSourceBySchemeKey
   );
   onLog(`Joined ${joinedFunds.size} funds (${label}).`);
+  if (joinedFunds.size === 0) {
+    throw new Error(
+      `No funds found after parsing (${label}). Check that the uploaded file matches the expected column format — ` +
+      `either the fixed template (with "Scheme Name", "1 Year (%)" etc.) or the legacy layout.`
+    );
+  }
   const rawPerfRows = (perfResult.rawDebugRows ?? []).map((r) => ({ ...r, _bucket: label }));
   return { joinedFunds, rawPerfRows };
 }

@@ -385,9 +385,15 @@ export function AlphaHorizonChart(props: {
                 const horizon =
                   typeof payload[0]?.payload?.horizon === "string" ? String(payload[0].payload.horizon) : String(label);
                 const rows = payload
-                  .filter((p) => p.value !== null && p.value !== undefined && Number.isFinite(p.value as number))
-                  .filter((p) => p.dataKey === "y")
-                  .sort((a, b) => (Number(b.value) as number) - (Number(a.value) as number));
+                  .filter((p) => {
+                    // Accept numeric values regardless of dataKey label —
+                    // Recharts Scatter exposes dataKey inconsistently across versions.
+                    const v = p.value !== null && p.value !== undefined ? Number(p.value) : NaN;
+                    return Number.isFinite(v);
+                  })
+                  .sort((a, b) => Number(b.value) - Number(a.value))
+                  // Deduplicate by name in case Recharts emits duplicate payload entries.
+                  .filter((p, i, arr) => arr.findIndex((q) => q.name === p.name) === i);
                 if (!rows.length) return null;
                 return (
                   <div className="max-w-xs rounded-lg border border-white/[0.08] bg-black px-3 py-2 text-xs shadow-xl">
